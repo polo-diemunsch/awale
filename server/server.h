@@ -8,6 +8,7 @@
 #elif defined (linux)
 
 #include <sys/types.h>
+#include <sys/select.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -33,7 +34,7 @@ typedef struct in_addr IN_ADDR;
 
 #define BUF_SIZE    1024
 
-#include "client2.h"
+#include "client.h"
 
 static void init(void);
 static void end(void);

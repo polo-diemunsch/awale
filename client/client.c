@@ -3,7 +3,7 @@
 #include <errno.h>
 #include <string.h>
 
-#include "client2.h"
+#include "client.h"
 
 static void init(void)
 {
@@ -105,7 +105,7 @@ static int init_connection(const char *address)
       exit(EXIT_FAILURE);
    }
 
-   sin.sin_addr = *(IN_ADDR *) hostinfo->h_addr;
+   sin.sin_addr = *(IN_ADDR *) hostinfo->h_addr_list[0];
    sin.sin_port = htons(PORT);
    sin.sin_family = AF_INET;
 
