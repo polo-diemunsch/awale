@@ -95,6 +95,7 @@ static void app(void)
          strncpy(c.name, buffer, BUF_SIZE - 1);
          clients[actual] = c;
          actual++;
+         printf("%s\n", c.name);
       }
       else
       {
@@ -119,6 +120,7 @@ static void app(void)
                {
                   send_message_to_all_clients(clients, client, actual, buffer, 0);
                }
+               printf("%s\n", buffer);
                break;
             }
          }

@@ -2,8 +2,18 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <string.h>
+#include <sys/ioctl.h>
+#include <signal.h>
 
 #include "client.h"
+#include "display.h"
+
+static volatile sig_atomic_t terminal_resized = 0;
+
+/* signal handler for SIGWINCH (terminal resize) */
+static void handle_sigwinch(int sig) {
+   terminal_resized = 1;
+}
 
 static void init(void)
 {
@@ -31,9 +41,20 @@ static void app(const char *address, const char *name)
    char buffer[BUF_SIZE];
 
    fd_set rdfs;
+   struct winsize ws;
+   if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
+   {
+      perror("ioctl()");
+      exit(errno);
+   }
 
    /* send our name */
    write_server(sock, name);
+
+   /* set up signal handler for SIGWINCH */
+   signal(SIGWINCH, handle_sigwinch);
+
+   update_interface(ws);
 
    while(1)
    {
@@ -45,10 +66,21 @@ static void app(const char *address, const char *name)
       /* add the socket */
       FD_SET(sock, &rdfs);
 
-      if(select(sock + 1, &rdfs, NULL, NULL, NULL) == -1)
+      if(select(sock + 1, &rdfs, NULL, NULL, NULL) == -1 && terminal_resized == 0)
       {
          perror("select()");
          exit(errno);
+      }
+
+      /* check if the terminal has been resized */
+      if (terminal_resized) {
+         /* get the new terminal size */
+         if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) {
+            printf("Terminal size: %d x %d\n",  ws.ws_col, ws.ws_row);
+            update_interface(ws);
+         }
+         terminal_resized = 0;
+         continue;
       }
 
       /* something from standard input : i.e keyboard */

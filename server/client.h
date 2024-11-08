@@ -3,8 +3,7 @@
 
 #include "server.h"
 
-typedef struct
-{
+typedef struct {
    SOCKET sock;
    char name[BUF_SIZE];
 } Client;
