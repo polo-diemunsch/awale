@@ -31,9 +31,25 @@ int main (){
     execute_round(game,1,6);
     print_game(game);
 
-
-    //round 4
+    //round 5
     execute_round(game,0,2);
     print_game(game);
+
+     //round 6
+    execute_round(game,1,8);
+    print_game(game);
+    
+    //round 7
+    execute_round(game,0,1);
+    print_game(game);
+    
+    //round 8
+    execute_round(game,1,9);
+    print_game(game);
+    
+    //round 4
+    execute_round(game,0,3);
+    print_game(game);
+
 
 }

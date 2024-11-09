@@ -16,11 +16,11 @@ int slot_belongs_to_player(int player, int slot) {
     return (player == 0 && slot < 6) || (player == 1 && slot >= 6);
 }
 
-int player_is_broke (int player, game * game) {
+int player_is_broke (int player, Game * game) {
     for (int i=0;i<12;++i){
         if(slot_belongs_to_player(player,i)) {
-            if(game->board[slot]!=0){
-                return 0
+            if(game->board[i]!=0){
+                return 0;
             }
         }
     }
@@ -90,7 +90,7 @@ int execute_round(Game * game, int player, int slot) {
     }
 
     if(game->players[player].score>24) {
-        printf("%s is the winner!",game->players[player]);
+        printf("%s is the winner!",game->players[player].name);
         return 1;
     }
     //if everything was allowed
