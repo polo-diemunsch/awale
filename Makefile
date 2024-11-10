@@ -11,6 +11,8 @@ LIBS=
 CLEAN=clean
 BIN=bin
 
+COMMUNICATION=communication
+
 SERVER=server
 SERVER_INT=
 SERVER_REAL=$(SERVER_INT:.h=.c)
@@ -18,7 +20,7 @@ SERVER_OBJ=$(SERVER_INT:.h=.o)
 SERVER_MAINFILE=$(SERVER)/server
 
 CLIENT=client
-CLIENT_INT=$(addprefix $(CLIENT)/, display.h)
+CLIENT_INT=$(addprefix $(CLIENT)/, display.h) $(addprefix $(COMMUNICATION)/, communication.h) 
 CLIENT_REAL=$(CLIENT_INT:.h=.c)
 CLIENT_OBJ=$(CLIENT_INT:.h=.o)
 CLIENT_MAINFILE=$(CLIENT)/client

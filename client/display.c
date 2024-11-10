@@ -2,12 +2,15 @@
 #include <string.h>
 
 #include "display.h"
-#include "console.h"
+#include "../lib/console.h"
+#include "../lib/math.h"
 
-void update_interface(struct winsize ws) {
+void update_interface(struct winsize ws, Messages *messages)
+{
     clear_screen();
 
-    if (ws.ws_col < MIN_WIDTH || ws.ws_row < MIN_HEIGHT) {
+    if (ws.ws_col < MIN_WIDTH || ws.ws_row < MIN_HEIGHT)
+    {
         display_window_too_small(ws);
         return;
     }
@@ -35,20 +38,23 @@ void update_interface(struct winsize ws) {
         .width = ws.ws_col,
         .height = ws.ws_row - TITLE_HEIGHT - MENU_AND_GAME_HEIGHT - VERTICAL_PADDING,
     };
-    display_chat(chat_position);
+    display_chat(chat_position, messages);
 }
 
-void display_window_too_small(struct winsize ws) {
+void display_window_too_small(struct winsize ws)
+{
     move_cursor_to(1 + max(0, ws.ws_col - 35) / 2, 1 + (ws.ws_row - 1) / 2);
     printf("Window too small, please resize it\n");
 }
 
-void display_title(Position position) {
+void display_title(Position position)
+{
     move_cursor_to(1 + (position.width - 5) / 2, position.y + VERTICAL_PADDING);
     color_printf("AWALÉ\n", BCYAN);
 }
 
-void display_menu(Position position) {
+void display_menu(Position position)
+{
     unsigned short first_column = (position.width - MENU_AND_GAME_WIDTH) / 2 + HORIZONTAL_PADDING;
 
     move_cursor_to(1 + (position.width - 7) / 2, position.y + VERTICAL_PADDING);
@@ -103,7 +109,8 @@ void display_menu(Position position) {
     printf("                        display next move\n");
 }
 
-void display_game(Position position) {
+void display_game(Position position)
+{
     int board[BOARD_SIZE] = {1, 2, 4, 6, 8, 12, 3, 0, 6, 8, 2, 3};
     char name_player1[] = "Mais what the fuck il est vraiment super archi mega long ton pseudo";
     unsigned int score_player1 = 69;
@@ -175,7 +182,8 @@ void display_game(Position position) {
     printf("%s\n\n", you);
 }
 
-void display_chat(Position position) {
+void display_chat(Position position, Messages *messages)
+{
     unsigned short first_column = (position.width - CHAT_WIDTH) / 2 + HORIZONTAL_PADDING;
     unsigned short content_length = CHAT_WIDTH - 2 * HORIZONTAL_PADDING - 2;
 
@@ -184,7 +192,8 @@ void display_chat(Position position) {
     for (int i = 0; i < content_length; i++) printf("─");
     printf("╮\n");
 
-    for (int i = 1; i < position.height - 1; i++) {
+    for (int i = 1; i < position.height - 1; i++)
+    {
         move_cursor_right(first_column);
         printf("│");
         move_cursor_right(content_length);
@@ -196,16 +205,19 @@ void display_chat(Position position) {
     for (int i = 0; i < content_length; i++) printf("─");
     printf("╯\n");
 
+    // TODO messages
     move_cursor_to(1 + first_column + 1, position.y + VERTICAL_PADDING + 1);
     printf("> ");
 
     fflush(stdout);
 }
 
-char * truncate_name(char * destination, char * source, size_t n) {
+char *truncate_name(char *destination, char *source, size_t n)
+{
     strncpy(destination, source, n);
 
-    if (strlen(source) > n) {
+    if (strlen(source) > n)
+    {
         strcpy(destination + n - 3, "...");
     }
 

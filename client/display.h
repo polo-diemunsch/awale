@@ -3,6 +3,8 @@
 
 #include <sys/ioctl.h>
 
+#include "../communication/communication.h"
+
 // TODO define somewhere else ?
 #define BOARD_SIZE           12
 
@@ -21,12 +23,16 @@
 #define MIN_WIDTH               CHAT_WIDTH
 #define MIN_HEIGHT              (TITLE_HEIGHT + 2 * MENU_AND_GAME_HEIGHT - VERTICAL_PADDING)
 
-#define max(a,b) ((a) > (b) ? (a) : (b))
-#define min(a,b) ((a) < (b) ? (a) : (b))
+typedef struct {
+    Message messages[BUF_SIZE];
+    int oldest_message_index;
+    int newest_message_index;
+    int oldest_displayed_message_index;
+    int newest_displayed_message_index;
+} Messages;
 
-void update_interface(struct winsize ws);
-void display_fullsize(struct winsize ws);
-void display_halfsize(struct winsize ws);
+void update_interface(struct winsize ws, Messages *messages);
+
 void display_window_too_small(struct winsize ws);
 
 typedef struct {
@@ -39,8 +45,8 @@ typedef struct {
 void display_title(Position position);
 void display_menu(Position position);
 void display_game(Position position);
-void display_chat(Position position);
+void display_chat(Position position, Messages *messages);
 
-char * truncate_name(char * destination, char * source, size_t n);
+char *truncate_name(char *destination, char *source, size_t n);
 
 #endif /* guard */

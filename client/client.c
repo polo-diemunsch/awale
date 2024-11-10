@@ -7,6 +7,8 @@
 
 #include "client.h"
 #include "display.h"
+#include "../communication/communication.h"
+#include "../lib/math.h"
 
 static volatile sig_atomic_t terminal_resized = 0;
 
@@ -39,6 +41,11 @@ static void app(const char *address, const char *name)
 {
    SOCKET sock = init_connection(address);
    char buffer[BUF_SIZE];
+   Messages messages;
+   messages.oldest_message_index = 0;
+   messages.newest_message_index = 0;
+   messages.oldest_displayed_message_index = 0;
+   messages.newest_displayed_message_index = 0;
 
    fd_set rdfs;
    struct winsize ws;
@@ -54,7 +61,7 @@ static void app(const char *address, const char *name)
    /* set up signal handler for SIGWINCH */
    signal(SIGWINCH, handle_sigwinch);
 
-   update_interface(ws);
+   update_interface(ws, &messages);
 
    while(1)
    {
@@ -76,8 +83,7 @@ static void app(const char *address, const char *name)
       if (terminal_resized) {
          /* get the new terminal size */
          if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) {
-            printf("Terminal size: %d x %d\n",  ws.ws_col, ws.ws_row);
-            update_interface(ws);
+            update_interface(ws, &messages);
          }
          terminal_resized = 0;
          continue;
@@ -102,6 +108,7 @@ static void app(const char *address, const char *name)
          }
          write_server(sock, buffer);
       }
+      /* something from server */
       else if(FD_ISSET(sock, &rdfs))
       {
          int n = read_server(sock, buffer);
@@ -111,8 +118,25 @@ static void app(const char *address, const char *name)
             printf("Server disconnected !\n");
             break;
          }
-         puts(buffer);
+         
+         MessageType type = (MessageType) *buffer;
+         switch (type)
+         {
+            case INFORMATION:
+            case ERROR:
+            case MESSAGE_SENT:
+               messages.newest_message_index = mod(messages.newest_message_index + 1, BUF_SIZE);
+               unserialize_message(& messages.messages[messages.newest_message_index], buffer);
+               if (messages.newest_message_index == messages.oldest_message_index)
+                  messages.oldest_message_index = mod(messages.oldest_message_index + 1, BUF_SIZE);
+               break;
+            
+            default:
+               break;
+         }
       }
+
+      update_interface(ws, &messages);
    }
 
    end_connection(sock);
