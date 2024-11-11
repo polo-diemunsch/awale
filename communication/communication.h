@@ -10,24 +10,12 @@
 #define BUF_SIZE    1024
 
 typedef enum {
-    INFORMATION,
-    ERROR,
-    MESSAGE_SENT,
-} MessageType;
+    MESSAGE,
+    // GAME...
+} CommunicationType;
 
-typedef struct {
-    MessageType type;
-    char *content;
-    char *from;
-    char *to;
-} Message;
+size_t write_string_to_buffer(const char *string, char *buffer);
 
-size_t serialize_message(Message message, char *buffer);
-
-void unserialize_message(Message * message, char *buffer);
-
-size_t write_string_to_buffer(char *string, char *buffer);
-
-char *read_string_from_buffer(char **string, char *buffer);
+size_t read_string_from_buffer(char **string, const char *buffer);
 
 #endif /* guard */

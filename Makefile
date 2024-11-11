@@ -14,7 +14,7 @@ BIN=bin
 COMMUNICATION=communication
 
 SERVER=server
-SERVER_INT=
+SERVER_INT= $(addprefix $(COMMUNICATION)/, communication.h) 
 SERVER_REAL=$(SERVER_INT:.h=.c)
 SERVER_OBJ=$(SERVER_INT:.h=.o)
 SERVER_MAINFILE=$(SERVER)/server

@@ -9,6 +9,7 @@
 #include "display.h"
 #include "../communication/communication.h"
 #include "../lib/math.h"
+#include "../lib/console.h"
 
 static volatile sig_atomic_t terminal_resized = 0;
 
@@ -41,7 +42,10 @@ static void app(const char *address, const char *name)
 {
    SOCKET sock = init_connection(address);
    char buffer[BUF_SIZE];
+
    Messages messages;
+   for (int i = 0; i < MESSAGES_COUNT; i++)
+      messages.messages[i] = NULL;
    messages.oldest_message_index = 0;
    messages.newest_message_index = 0;
    messages.oldest_displayed_message_index = 0;
@@ -49,7 +53,7 @@ static void app(const char *address, const char *name)
 
    fd_set rdfs;
    struct winsize ws;
-   if(ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
+   if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) != 0)
    {
       perror("ioctl()");
       exit(errno);
@@ -61,9 +65,9 @@ static void app(const char *address, const char *name)
    /* set up signal handler for SIGWINCH */
    signal(SIGWINCH, handle_sigwinch);
 
-   update_interface(ws, &messages);
+   update_interface(ws, messages);
 
-   while(1)
+   while (1)
    {
       FD_ZERO(&rdfs);
 
@@ -73,7 +77,7 @@ static void app(const char *address, const char *name)
       /* add the socket */
       FD_SET(sock, &rdfs);
 
-      if(select(sock + 1, &rdfs, NULL, NULL, NULL) == -1 && terminal_resized == 0)
+      if (select(sock + 1, &rdfs, NULL, NULL, NULL) == -1 && terminal_resized == 0)
       {
          perror("select()");
          exit(errno);
@@ -83,20 +87,20 @@ static void app(const char *address, const char *name)
       if (terminal_resized) {
          /* get the new terminal size */
          if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) {
-            update_interface(ws, &messages);
+            update_interface(ws, messages);
          }
          terminal_resized = 0;
          continue;
       }
 
       /* something from standard input : i.e keyboard */
-      if(FD_ISSET(STDIN_FILENO, &rdfs))
+      if (FD_ISSET(STDIN_FILENO, &rdfs))
       {
-         fgets(buffer, BUF_SIZE - 1, stdin);
+         fgets(buffer, BUF_SIZE - 2, stdin);
          {
             char *p = NULL;
             p = strstr(buffer, "\n");
-            if(p != NULL)
+            if (p != NULL)
             {
                *p = 0;
             }
@@ -106,10 +110,12 @@ static void app(const char *address, const char *name)
                buffer[BUF_SIZE - 1] = 0;
             }
          }
+         if (strcmp(buffer, "exit") == 0)
+            break;
          write_server(sock, buffer);
       }
       /* something from server */
-      else if(FD_ISSET(sock, &rdfs))
+      else if (FD_ISSET(sock, &rdfs))
       {
          int n = read_server(sock, buffer);
          /* server down */
@@ -118,17 +124,15 @@ static void app(const char *address, const char *name)
             printf("Server disconnected !\n");
             break;
          }
-         
-         MessageType type = (MessageType) *buffer;
+
+         CommunicationType type = *buffer;
          switch (type)
          {
-            case INFORMATION:
-            case ERROR:
-            case MESSAGE_SENT:
-               messages.newest_message_index = mod(messages.newest_message_index + 1, BUF_SIZE);
-               unserialize_message(& messages.messages[messages.newest_message_index], buffer);
+            case MESSAGE:
+               messages.newest_message_index = mod(messages.newest_message_index + 1, MESSAGES_COUNT);
+               read_string_from_buffer(&messages.messages[messages.newest_message_index], buffer + 1);
                if (messages.newest_message_index == messages.oldest_message_index)
-                  messages.oldest_message_index = mod(messages.oldest_message_index + 1, BUF_SIZE);
+                  messages.oldest_message_index = mod(messages.oldest_message_index + 1, MESSAGES_COUNT);
                break;
             
             default:
@@ -136,10 +140,18 @@ static void app(const char *address, const char *name)
          }
       }
 
-      update_interface(ws, &messages);
+      update_interface(ws, messages);
    }
 
    end_connection(sock);
+
+   for (int i = 0; i < MESSAGES_COUNT; i++)
+   {
+      if (messages.messages[i] != NULL)
+         free(messages.messages[i]);
+   }
+
+   clear_screen();
 }
 
 static int init_connection(const char *address)
@@ -148,7 +160,7 @@ static int init_connection(const char *address)
    SOCKADDR_IN sin = { 0 };
    struct hostent *hostinfo;
 
-   if(sock == INVALID_SOCKET)
+   if (sock == INVALID_SOCKET)
    {
       perror("socket()");
       exit(errno);
@@ -165,7 +177,7 @@ static int init_connection(const char *address)
    sin.sin_port = htons(PORT);
    sin.sin_family = AF_INET;
 
-   if(connect(sock,(SOCKADDR *) &sin, sizeof(SOCKADDR)) == SOCKET_ERROR)
+   if (connect(sock,(SOCKADDR *) &sin, sizeof(SOCKADDR)) == SOCKET_ERROR)
    {
       perror("connect()");
       exit(errno);
@@ -183,7 +195,7 @@ static int read_server(SOCKET sock, char *buffer)
 {
    int n = 0;
 
-   if((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0)
+   if ((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0)
    {
       perror("recv()");
       exit(errno);
@@ -196,7 +208,7 @@ static int read_server(SOCKET sock, char *buffer)
 
 static void write_server(SOCKET sock, const char *buffer)
 {
-   if(send(sock, buffer, strlen(buffer), 0) < 0)
+   if (send(sock, buffer, strlen(buffer), 0) < 0)
    {
       perror("send()");
       exit(errno);
@@ -205,7 +217,7 @@ static void write_server(SOCKET sock, const char *buffer)
 
 int main(int argc, char **argv)
 {
-   if(argc < 2)
+   if (argc < 2)
    {
       printf("Usage : %s [address] [pseudo]\n", argv[0]);
       return EXIT_FAILURE;

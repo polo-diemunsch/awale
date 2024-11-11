@@ -2,6 +2,7 @@
 #define CLIENT_H
 
 #include "server.h"
+#include "../communication/communication.h"
 
 typedef struct {
    SOCKET sock;

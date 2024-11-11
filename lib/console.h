@@ -30,5 +30,7 @@
 
 #define RESET    "\033[0m"
 
+#define OWN_COLOR      BBLUE
+#define OPPONENT_COLOR MAGENTA
 
 #endif /* guard */

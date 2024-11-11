@@ -1,11 +1,12 @@
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 #include "display.h"
 #include "../lib/console.h"
 #include "../lib/math.h"
 
-void update_interface(struct winsize ws, Messages *messages)
+void update_interface(struct winsize ws, Messages messages)
 {
     clear_screen();
 
@@ -112,7 +113,7 @@ void display_menu(Position position)
 void display_game(Position position)
 {
     int board[BOARD_SIZE] = {1, 2, 4, 6, 8, 12, 3, 0, 6, 8, 2, 3};
-    char name_player1[] = "Mais what the fuck il est vraiment super archi mega long ton pseudo";
+    char name_player1[] = "Mais what the fuck il est vraiment super archi méga long ton pseudo";
     unsigned int score_player1 = 69;
     char name_player2[] = "Joueur adverse";
     unsigned int score_player2 = 0;
@@ -131,14 +132,14 @@ void display_game(Position position)
 
     move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING);
     printf(display_string);
-    color_printf(who_is_playing, is_my_turn ? BBLUE : MAGENTA);
+    color_printf(who_is_playing, is_my_turn ? OWN_COLOR : OPPONENT_COLOR);
     printf("\n\n\n");
 
     char opponent[] = " (Opponent)";
     offset = strlen(opponent);
     truncate_name(display_string, name_player2, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
-    move_cursor_right((int)(position.width - strlen(display_string) - offset) / 2);
-    color_printf(display_string, MAGENTA);
+    move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
+    color_printf(display_string, OPPONENT_COLOR);
     printf("%s\n\n", opponent);
 
     unsigned short board_left_column = (position.width - BOARD_WIDTH) / 2;
@@ -148,7 +149,7 @@ void display_game(Position position)
 
     sprintf(display_string, "%2d   ", score_player2);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
-    color_printf(display_string, MAGENTA);
+    color_printf(display_string, OPPONENT_COLOR);
     start_index = (player == 0 ? BOARD_SIZE : BOARD_SIZE / 2) - 1;
     for (int i = start_index; i >= start_index - BOARD_SIZE / 2 + 1; i--)
         printf("│ %2d ", board[i]);
@@ -161,7 +162,7 @@ void display_game(Position position)
 
     sprintf(display_string, "%2d   ", score_player1);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
-    color_printf(display_string, BBLUE);
+    color_printf(display_string, OWN_COLOR);
     start_index = (player == 0 ? 0 : BOARD_SIZE / 2);
     for (int i = start_index; i < start_index + BOARD_SIZE / 2; i++)
         printf("│ %2d ", board[i]);
@@ -177,12 +178,12 @@ void display_game(Position position)
     char you[] = " (You)";
     offset = strlen(you);
     truncate_name(display_string, name_player1, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
-    move_cursor_right((int)(position.width - strlen(display_string) - offset) / 2);
-    color_printf(display_string, BBLUE);
+    move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
+    color_printf(display_string, OWN_COLOR);
     printf("%s\n\n", you);
 }
 
-void display_chat(Position position, Messages *messages)
+void display_chat(Position position, Messages messages)
 {
     unsigned short first_column = (position.width - CHAT_WIDTH) / 2 + HORIZONTAL_PADDING;
     unsigned short content_length = CHAT_WIDTH - 2 * HORIZONTAL_PADDING - 2;
@@ -205,21 +206,121 @@ void display_chat(Position position, Messages *messages)
     for (int i = 0; i < content_length; i++) printf("─");
     printf("╯\n");
 
-    // TODO messages
-    move_cursor_to(1 + first_column + 1, position.y + VERTICAL_PADDING + 1);
+    move_cursor_to(1, position.y + VERTICAL_PADDING + 1);
+    int index, lines_left;
+
+    if (messages.newest_displayed_message_index != messages.newest_message_index)
+    {
+        messages.newest_displayed_message_index = messages.newest_message_index;
+        index = messages.newest_message_index;
+        lines_left = position.height - VERTICAL_PADDING - 3;
+        while (lines_left > 0 && index != messages.oldest_message_index)
+        {
+            lines_left -= get_visual_length(messages.messages[index]) / (content_length + 1) + 1;
+            if (lines_left >= 0)
+                index = mod(index - 1, MESSAGES_COUNT);
+        }
+        messages.oldest_displayed_message_index = index;
+    }
+
+    index = mod(messages.oldest_displayed_message_index + 1, MESSAGES_COUNT);
+    while (index != mod(messages.newest_displayed_message_index + 1, MESSAGES_COUNT))
+    {
+        multiline_print(messages.messages[index], first_column, content_length);
+        index = mod(index + 1, MESSAGES_COUNT);
+    }
+
+    move_cursor_right(first_column + 1);
     printf("> ");
 
     fflush(stdout);
 }
 
-char *truncate_name(char *destination, char *source, size_t n)
+int get_visual_length(const char *string)
 {
-    strncpy(destination, source, n);
-
-    if (strlen(source) > n)
+    int visual_length = 0;
+    int i = 0;
+    
+    while (string[i] != '\0')
     {
-        strcpy(destination + n - 3, "...");
+        if (string[i] == '\033')  // ANSI escape sequence
+        {
+            while (string[i] && string[i] != 'm') 
+                i++;
+            i++;  // skip the 'm'
+            continue;
+        }
+        
+        // handle UTF-8 multi-byte chars
+        if ((string[i] & 0xC0) != 0x80)  // not a continuation byte
+            visual_length++;
+
+        i++;
     }
 
+    return visual_length;
+}
+
+int get_string_length_for_visual_length(const char *string, int visual_length)
+{
+    int i = 0;
+    
+    while (string[i] != '\0' && visual_length >= 0)
+    {
+        if (string[i] == '\033')  // ANSI escape sequence
+        {
+            while (string[i] && string[i] != 'm') 
+                i++;
+            i++;  // skip the 'm'
+            continue;
+        }
+        
+        // handle UTF-8 multi-byte chars
+        if ((string[i] & 0xC0) != 0x80)  // not a continuation byte
+            visual_length--;
+
+        i++;
+    }
+
+    return visual_length < 0 ? i - 1 : i;
+}
+
+char *truncate_name(char *destination, const char *source, size_t n)
+{
+    int string_length = get_string_length_for_visual_length(source, n);
+    strncpy(destination, source, string_length);
+
+    if (strlen(source) > string_length)
+        strcpy(destination + get_string_length_for_visual_length(destination, n - 3), "...");
+
+    destination[string_length] = '\0';
+
     return destination;
+}
+
+void multiline_print(const char *string, unsigned short first_column, unsigned short content_length)
+{
+    int string_length = strlen(string);
+    int visual_length = get_visual_length(string);
+    int string_position = 0;
+    int chars_printed = 0;
+
+    char *displayed_string = malloc((string_length + 1) * sizeof(char));
+
+    while (chars_printed < visual_length)
+    {
+        int remaining = visual_length - chars_printed;
+        int chunk_size = get_string_length_for_visual_length(string + string_position, (remaining < content_length) ? remaining : content_length);
+        
+        strncpy(displayed_string, string + string_position, chunk_size);
+        displayed_string[chunk_size] = '\0';
+
+        move_cursor_right(first_column + 1);
+        printf("%s\n", displayed_string);
+
+        string_position += chunk_size;
+        chars_printed += content_length;
+    }
+
+    free(displayed_string);
 }

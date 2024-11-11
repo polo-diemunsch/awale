@@ -5,6 +5,7 @@
 
 #include "server.h"
 #include "client.h"
+#include "../lib/console.h"
 
 static void init(void)
 {
@@ -95,7 +96,12 @@ static void app(void)
          strncpy(c.name, buffer, BUF_SIZE - 1);
          clients[actual] = c;
          actual++;
+
          printf("%s\n", c.name);
+         char *message = malloc((100 + strlen(c.name)) * sizeof(char));
+         sprintf(message, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+         send_message_to_client(c, message);
+         free(message);
       }
       else
       {
@@ -148,6 +154,14 @@ static void remove_client(Client *clients, int to_remove, int *actual)
    (*actual)--;
 }
 
+static void send_message_to_client(Client receiver, char *message)
+{
+   char buffer[BUF_SIZE];
+   *buffer = MESSAGE;
+   size_t n = write_string_to_buffer(message, buffer + 1);
+   write_client(receiver.sock, buffer, n + 1);
+}
+
 static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer, char from_server)
 {
    int i = 0;
@@ -164,7 +178,7 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
             strncat(message, " : ", sizeof message - strlen(message) - 1);
          }
          strncat(message, buffer, sizeof message - strlen(message) - 1);
-         write_client(clients[i].sock, message);
+         write_client(clients[i].sock, message, strlen(message));
       }
    }
 }
@@ -220,9 +234,9 @@ static int read_client(SOCKET sock, char *buffer)
    return n;
 }
 
-static void write_client(SOCKET sock, const char *buffer)
+static void write_client(SOCKET sock, const char *buffer, size_t n)
 {
-   if(send(sock, buffer, strlen(buffer), 0) < 0)
+   if(send(sock, buffer, n, 0) < 0)
    {
       perror("send()");
       exit(errno);
