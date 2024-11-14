@@ -1,55 +1,57 @@
 #include <stdio.h>
+#include <stdbool.h>
 #include "awale.h"
 
 int main (){
     Game * game = create_game("john","doe",0);
     
-    //init
-    print_game(game);
-    //round 1
-    execute_round(game,0,0);
-    print_game(game);
 
+// Continue rounds until one player has no seeds left
+int round = 13;
+// Check if one side is empty to end the game
+bool john_empty = true;
+bool doe_empty = true;
+while (true) {
 
-    //round 2 fails because not the right player
-    execute_round(game,0,0);
-    print_game(game);
+    for (int i = 0; i < 6; ++i) {
+        if (game->board[i] > 0) john_empty = false;
+        if (game->board[6+i] > 0) doe_empty = false;
+    }
 
-    //round 2bis fails because not the right slot
-    execute_round(game,1,0);
-    print_game(game);
+    if (john_empty || doe_empty) break;
 
-    //round 2ter
-    execute_round(game,1,7);
-    print_game(game);
+    // John’s turn (try from left to right)
+    for (int i = 0; i < 6; ++i) {
+        if (game->board[i] > 0) {
+            execute_round(game, 0, i);
+            print_game(game);
+            break;
+        }
+    }
 
-    //round 3
-    execute_round(game,0,3);
-    print_game(game);
+    // Check again if one side is empty
+    john_empty = true;
+    doe_empty = true;
 
-    //round 4
-    execute_round(game,1,6);
-    print_game(game);
+    for (int i = 0; i < 6; ++i) {
+        if (game->board[i] > 0) john_empty = false;
+        if (game->board[6+i] > 0) doe_empty = false;
+    }
 
-    //round 5
-    execute_round(game,0,2);
-    print_game(game);
+    if (john_empty || doe_empty) break;
 
-     //round 6
-    execute_round(game,1,8);
-    print_game(game);
-    
-    //round 7
-    execute_round(game,0,1);
-    print_game(game);
-    
-    //round 8
-    execute_round(game,1,9);
-    print_game(game);
-    
-    //round 4
-    execute_round(game,0,3);
-    print_game(game);
+    // Doe’s turn (try from left to right)
+    for (int i = 6; i < 12; ++i) {
+        if (game->board[i] > 0) {
+            execute_round(game, 1, i);
+            print_game(game);
+            break;
+        }
+    }
+}
+
+execute_round(game, 1, 10); //6 should not be allowed, should feed john
+print_game(game);
 
 
 }
