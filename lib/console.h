@@ -33,4 +33,6 @@
 #define OWN_COLOR      BBLUE
 #define OPPONENT_COLOR MAGENTA
 
+#define ERROR_COLOR    RED
+
 #endif /* guard */

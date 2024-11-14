@@ -30,8 +30,8 @@ void update_interface(struct winsize ws, Messages messages)
         .width = ws.ws_col,
         .height = MENU_AND_GAME_HEIGHT,
     };
-    // display_menu(menu_game_position);
-    display_game(menu_game_position);
+    display_menu(menu_game_position);
+    // display_game(menu_game_position);
 
     Position chat_position = {
         .x = 1,
