@@ -37,6 +37,7 @@ static int init_connection(void);
 static void end_connection(int sock);
 static int read_client(SOCKET sock, char *buffer);
 static void write_client(SOCKET sock, const char *buffer, size_t n);
+static void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it);
 static void send_message_to_client(Client receiver, char *buffer);
 static void send_message(Client *clients, Client sender, int actual, const char*target, const char *buffer);
 static void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer);

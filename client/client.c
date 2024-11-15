@@ -8,6 +8,7 @@
 #include "client.h"
 #include "display.h"
 #include "../communication/communication.h"
+#include "../game/awale.h"
 #include "../lib/math.h"
 #include "../lib/console.h"
 
@@ -43,13 +44,16 @@ static void app(const char *address, const char *name)
    SOCKET sock = init_connection(address);
    char buffer[BUF_SIZE];
 
-   Messages messages;
+   Messages *messages = malloc(sizeof(Messages));
    for (int i = 0; i < MESSAGES_COUNT; i++)
-      messages.messages[i] = NULL;
-   messages.oldest_message_index = 0;
-   messages.newest_message_index = 0;
-   messages.oldest_displayed_message_index = 0;
-   messages.newest_displayed_message_index = 0;
+      messages->messages[i] = NULL;
+   messages->oldest_message_index = 0;
+   messages->newest_message_index = 0;
+   messages->oldest_displayed_message_index = 0;
+   messages->newest_displayed_message_index = 0;
+
+   Game *game = NULL;
+   unsigned char who_am_i = 0;
 
    fd_set rdfs;
    struct winsize ws;
@@ -65,7 +69,7 @@ static void app(const char *address, const char *name)
    /* set up signal handler for SIGWINCH */
    signal(SIGWINCH, handle_sigwinch);
 
-   update_interface(ws, messages);
+   update_interface(ws, messages, game, who_am_i);
 
    while (1)
    {
@@ -87,7 +91,7 @@ static void app(const char *address, const char *name)
       if (terminal_resized) {
          /* get the new terminal size */
          if (ioctl(STDOUT_FILENO, TIOCGWINSZ, &ws) == 0) {
-            update_interface(ws, messages);
+            update_interface(ws, messages, game, who_am_i);
          }
          terminal_resized = 0;
          continue;
@@ -129,27 +133,38 @@ static void app(const char *address, const char *name)
          switch (type)
          {
             case MESSAGE:
-               messages.newest_message_index = mod(messages.newest_message_index + 1, MESSAGES_COUNT);
-               read_string_from_buffer(&messages.messages[messages.newest_message_index], buffer + 1);
-               if (messages.newest_message_index == messages.oldest_message_index)
-                  messages.oldest_message_index = mod(messages.oldest_message_index + 1, MESSAGES_COUNT);
+               messages->newest_message_index = mod(messages->newest_message_index + 1, MESSAGES_COUNT);
+               read_string_from_buffer(&messages->messages[messages->newest_message_index], buffer + 1);
+               if (messages->newest_message_index == messages->oldest_message_index)
+                  messages->oldest_message_index = mod(messages->oldest_message_index + 1, MESSAGES_COUNT);
                break;
             
+            case GAME_INIT:
+               if (game == NULL)
+               {
+                  game = malloc(sizeof(Game));
+                  game->players[0].name = NULL;
+                  game->players[1].name = NULL;
+                  who_am_i = unserialize_game(game, buffer + 1);
+               }
+               break;
+
             default:
                break;
          }
       }
 
-      update_interface(ws, messages);
+      update_interface(ws, messages, game, who_am_i);
    }
 
    end_connection(sock);
 
    for (int i = 0; i < MESSAGES_COUNT; i++)
    {
-      if (messages.messages[i] != NULL)
-         free(messages.messages[i]);
+      if (messages->messages[i] != NULL)
+         free(messages->messages[i]);
    }
+   free(messages);
 
    clear_screen();
 }

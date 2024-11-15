@@ -38,15 +38,15 @@ size_t unserialize_player(Player *player, const char *buffer)
     return length + 1;
 }
 
-size_t serialize_game_init(Game *game, char which_player_is_it, char *buffer)
+size_t serialize_game_init(Game *game, unsigned char which_player_is_it, char *buffer)
 {
     size_t length = 0;
 
     length += serialize_player(&(game->players[0]), buffer + length);
     length += serialize_player(&(game->players[1]), buffer + length);
 
-    strncpy(buffer + length, game->board, 12);
-    length += 12;
+    strncpy(buffer + length, game->board, BOARD_SIZE);
+    length += BOARD_SIZE;
 
     int round = htons(game->round);
     memcpy(buffer + length, &round, sizeof(int));
@@ -64,15 +64,15 @@ size_t serialize_game_init(Game *game, char which_player_is_it, char *buffer)
     return length;
 }
 
-char unserialize_game(Game *game, const char *buffer)
+unsigned char unserialize_game(Game *game, const char *buffer)
 {
     size_t length = 0;
 
     length += unserialize_player(&(game->players[0]), buffer + length);
     length += unserialize_player(&(game->players[1]), buffer + length);
 
-    strncpy(game->board, buffer + length, 12);
-    length += 12;
+    strncpy(game->board, buffer + length, BOARD_SIZE);
+    length += BOARD_SIZE;
 
     int round;
     memcpy(&round, buffer + length, sizeof(int));
@@ -85,7 +85,7 @@ char unserialize_game(Game *game, const char *buffer)
     game->direction = *(buffer + length);
     length++;
 
-    char who_am_i = *(buffer + length);
+    unsigned char who_am_i = *(buffer + length);
 
     return who_am_i;
 }

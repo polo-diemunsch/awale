@@ -97,9 +97,12 @@ static void app(void)
          clients[actual] = c;
          actual++;
 
-         char message[BUF_SIZE - 1];
-         snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
-         send_message_to_client(c, message);
+         // char message[BUF_SIZE - 1];
+         // snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+         // send_message_to_client(c, message);
+
+         Game *game = create_game(c.name, "Bob", 0);
+         send_game_init_to_client(c, game, 0);
       }
       else
       {
@@ -167,6 +170,14 @@ static void remove_client(Client *clients, int to_remove, int *actual)
    memmove(clients + to_remove, clients + to_remove + 1, (*actual - to_remove - 1) * sizeof(Client));
    /* number client - 1 */
    (*actual)--;
+}
+
+static void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it)
+{
+   char buffer[BUF_SIZE];
+   *buffer = GAME_INIT;
+   size_t n = serialize_game_init(game, which_player_is_it, buffer + 1);
+   write_client(receiver.sock, buffer, n + 1);
 }
 
 static void send_message_to_client(Client receiver, char *message)

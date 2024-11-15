@@ -6,7 +6,7 @@
 #include "../lib/console.h"
 #include "../lib/math.h"
 
-void update_interface(struct winsize ws, Messages messages)
+void update_interface(struct winsize ws, Messages *messages, Game *game, char who_am_i)
 {
     clear_screen();
 
@@ -30,8 +30,10 @@ void update_interface(struct winsize ws, Messages messages)
         .width = ws.ws_col,
         .height = MENU_AND_GAME_HEIGHT,
     };
-    display_menu(menu_game_position);
-    // display_game(menu_game_position);
+    if (game == NULL)
+        display_menu(menu_game_position);
+    else
+        display_game(menu_game_position, game, who_am_i);
 
     Position chat_position = {
         .x = 1,
@@ -110,25 +112,19 @@ void display_menu(Position position)
     printf("                        display next move\n");
 }
 
-void display_game(Position position)
+void display_game(Position position, Game *game, unsigned char who_am_i)
 {
-    int board[BOARD_SIZE] = {1, 2, 4, 6, 8, 12, 3, 0, 6, 8, 2, 3};
-    char name_player1[] = "Mais what the fuck il est vraiment super archi méga long ton pseudo";
-    unsigned int score_player1 = 69;
-    char name_player2[] = "Joueur adverse";
-    unsigned int score_player2 = 0;
-    unsigned int player = 0;
-    unsigned int turn = 22;
+    unsigned char other_player = (who_am_i + 1) % 2;
 
     int start_index, offset;
 
     char display_string[MENU_AND_GAME_WIDTH + 1];
 
-    unsigned short is_my_turn = turn % 2 != player;
+    unsigned char is_my_turn = game->turn == who_am_i;
 
-    sprintf(display_string, "Turn %d - ", turn);
+    sprintf(display_string, "Turn %d - ", game->round);
     char who_is_playing[MENU_AND_GAME_WIDTH + 1];
-    is_my_turn ? strcpy(who_is_playing, "Your time to play") : strcpy(who_is_playing, "Waiting for opponent to play");
+    strcpy(who_is_playing, is_my_turn ? "Your time to play" : "Waiting for opponent to play");
 
     move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING);
     printf(display_string);
@@ -137,7 +133,7 @@ void display_game(Position position)
 
     char opponent[] = " (Opponent)";
     offset = strlen(opponent);
-    truncate_name(display_string, name_player2, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
+    truncate_name(display_string, game->players[other_player].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
     move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
     color_printf(display_string, OPPONENT_COLOR);
     printf("%s\n\n", opponent);
@@ -147,12 +143,12 @@ void display_game(Position position)
     move_cursor_right(board_left_column);
     printf("╭────┬────┬────┬────┬────┬────╮\n");
 
-    sprintf(display_string, "%2d   ", score_player2);
+    sprintf(display_string, "%2d   ", game->players[other_player].score);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
     color_printf(display_string, OPPONENT_COLOR);
-    start_index = (player == 0 ? BOARD_SIZE : BOARD_SIZE / 2) - 1;
+    start_index = (who_am_i == 0 ? BOARD_SIZE : BOARD_SIZE / 2) - 1;
     for (int i = start_index; i >= start_index - BOARD_SIZE / 2 + 1; i--)
-        printf("│ %2d ", board[i]);
+        printf("│ %2d ", game->board[i]);
     printf("│");
     color_printf("  ◀─╮\n", BBLACK);
 
@@ -160,12 +156,12 @@ void display_game(Position position)
     printf("├────┼────┼────┼────┼────┼────┤");
     color_printf("    │\n", BBLACK);
 
-    sprintf(display_string, "%2d   ", score_player1);
+    sprintf(display_string, "%2d   ", game->players[who_am_i].score);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
     color_printf(display_string, OWN_COLOR);
-    start_index = (player == 0 ? 0 : BOARD_SIZE / 2);
+    start_index = (who_am_i == 0 ? 0 : BOARD_SIZE / 2);
     for (int i = start_index; i < start_index + BOARD_SIZE / 2; i++)
-        printf("│ %2d ", board[i]);
+        printf("│ %2d ", game->board[i]);
     printf("│");
     color_printf("   ─╯\n", BBLACK);
 
@@ -177,13 +173,13 @@ void display_game(Position position)
 
     char you[] = " (You)";
     offset = strlen(you);
-    truncate_name(display_string, name_player1, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
+    truncate_name(display_string, game->players[who_am_i].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
     move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
     color_printf(display_string, OWN_COLOR);
     printf("%s\n\n", you);
 }
 
-void display_chat(Position position, Messages messages)
+void display_chat(Position position, Messages *messages)
 {
     unsigned short first_column = (position.width - CHAT_WIDTH) / 2 + HORIZONTAL_PADDING;
     unsigned short content_length = CHAT_WIDTH - 2 * HORIZONTAL_PADDING - 2;
@@ -209,24 +205,24 @@ void display_chat(Position position, Messages messages)
     move_cursor_to(1, position.y + VERTICAL_PADDING + 1);
     int index, lines_left;
 
-    if (messages.newest_displayed_message_index != messages.newest_message_index)
+    if (messages->newest_displayed_message_index != messages->newest_message_index)
     {
-        messages.newest_displayed_message_index = messages.newest_message_index;
-        index = messages.newest_message_index;
+        messages->newest_displayed_message_index = messages->newest_message_index;
+        index = messages->newest_message_index;
         lines_left = position.height - VERTICAL_PADDING - 3;
-        while (lines_left > 0 && index != messages.oldest_message_index)
+        while (lines_left > 0 && index != messages->oldest_message_index)
         {
-            lines_left -= get_visual_length(messages.messages[index]) / (content_length + 1) + 1;
+            lines_left -= get_visual_length(messages->messages[index]) / (content_length + 1) + 1;
             if (lines_left >= 0)
                 index = mod(index - 1, MESSAGES_COUNT);
         }
-        messages.oldest_displayed_message_index = index;
+        messages->oldest_displayed_message_index = index;
     }
 
-    index = mod(messages.oldest_displayed_message_index + 1, MESSAGES_COUNT);
-    while (index != mod(messages.newest_displayed_message_index + 1, MESSAGES_COUNT))
+    index = mod(messages->oldest_displayed_message_index + 1, MESSAGES_COUNT);
+    while (index != mod(messages->newest_displayed_message_index + 1, MESSAGES_COUNT))
     {
-        multiline_print(messages.messages[index], first_column, content_length);
+        multiline_print(messages->messages[index], first_column, content_length);
         index = mod(index + 1, MESSAGES_COUNT);
     }
 

@@ -5,9 +5,6 @@
 
 #include "../communication/communication.h"
 
-// TODO define somewhere else ?
-#define BOARD_SIZE           12
-
 #define VERTICAL_PADDING     1
 #define HORIZONTAL_PADDING   (2 * VERTICAL_PADDING)
 
@@ -33,7 +30,7 @@ typedef struct {
     int newest_displayed_message_index;
 } Messages;
 
-void update_interface(struct winsize ws, Messages messages);
+void update_interface(struct winsize ws, Messages *messages, Game *game, char who_am_i);
 
 void display_window_too_small(struct winsize ws);
 
@@ -46,8 +43,8 @@ typedef struct {
 
 void display_title(Position position);
 void display_menu(Position position);
-void display_game(Position position);
-void display_chat(Position position, Messages messages);
+void display_game(Position position, Game *game, unsigned char who_am_i);
+void display_chat(Position position, Messages *messages);
 
 int get_visual_length(const char *string);
 int get_string_length_for_visual_length(const char *string, int visual_length);
