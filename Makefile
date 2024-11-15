@@ -12,9 +12,10 @@ CLEAN=clean
 BIN=bin
 
 COMMUNICATION=communication
+GAME=game
 
 SERVER=server
-SERVER_INT= $(addprefix $(COMMUNICATION)/, communication.h) 
+SERVER_INT=$(addprefix $(GAME)/, awale.h) $(addprefix $(COMMUNICATION)/, communication.h) 
 SERVER_REAL=$(SERVER_INT:.h=.c)
 SERVER_OBJ=$(SERVER_INT:.h=.o)
 SERVER_MAINFILE=$(SERVER)/server

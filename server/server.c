@@ -93,14 +93,12 @@ static void app(void)
          FD_SET(csock, &rdfs);
 
          Client c = { csock };
-         strncpy(c.name, buffer, BUF_SIZE - 1);
+         strncpy(c.name, buffer, NAME_SIZE);
          clients[actual] = c;
          actual++;
 
          char message[BUF_SIZE - 1];
-         char player_name[BUF_SIZE - 43];
-         strncpy(player_name, c.name, BUF_SIZE - 43);
-         snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, player_name, BYELLOW, RESET);
+         snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
          send_message_to_client(c, message);
       }
       else
@@ -212,14 +210,11 @@ static void send_message(Client *clients, Client sender, int actual, const char*
 static void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer)
 {
    char message[BUF_SIZE];
-   char player_name[BUF_SIZE - 27];
 
-   strncpy(player_name, sender.name, BUF_SIZE - 27);
-   snprintf(message, BUF_SIZE, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, player_name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender.name, BWHITE, buffer, RESET);
    send_message_to_client(receiver, message);
 
-   strncpy(player_name, receiver.name, BUF_SIZE - 27);
-   snprintf(message, BUF_SIZE, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, player_name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver.name, BWHITE, buffer, RESET);
    send_message_to_client(sender, message);
 }
 
@@ -227,11 +222,9 @@ static void send_message_to_all_clients(Client *clients, Client sender, int actu
 {
    int i = 0;
    char message[BUF_SIZE - 1];
-   char player_name[BUF_SIZE - 12];
    for (i = 0; i < actual; i++)
    {
-      strncpy(player_name, sender.name, BUF_SIZE - 12);
-      snprintf(message, BUF_SIZE, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, player_name, RESET, buffer);
+      snprintf(message, BUF_SIZE, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, sender.name, RESET, buffer);
       send_message_to_client(clients[i], message);
    }
 }
@@ -251,13 +244,13 @@ static int init_connection(void)
    sin.sin_port = htons(PORT);
    sin.sin_family = AF_INET;
 
-   if(bind(sock,(SOCKADDR *) &sin, sizeof sin) == SOCKET_ERROR)
+   if (bind(sock,(SOCKADDR *) &sin, sizeof sin) == SOCKET_ERROR)
    {
       perror("bind()");
       exit(errno);
    }
 
-   if(listen(sock, MAX_CLIENTS) == SOCKET_ERROR)
+   if (listen(sock, MAX_CLIENTS) == SOCKET_ERROR)
    {
       perror("listen()");
       exit(errno);
