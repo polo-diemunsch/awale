@@ -38,7 +38,7 @@ size_t unserialize_player(Player *player, const char *buffer)
     return length + 1;
 }
 
-size_t serialize_game_init(Game *game, unsigned char which_player_is_it, char *buffer)
+size_t serialize_game(Game *game, unsigned char which_player_is_it, char *buffer)
 {
     size_t length = 0;
 

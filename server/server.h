@@ -30,19 +30,18 @@ typedef struct in_addr IN_ADDR;
 
 #include "client.h"
 
-static void init(void);
-static void end(void);
-static void app(void);
-static int init_connection(void);
-static void end_connection(int sock);
-static int read_client(SOCKET sock, char *buffer);
-static void write_client(SOCKET sock, const char *buffer, size_t n);
-static void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it);
-static void send_message_to_client(Client receiver, char *buffer);
-static void send_message(Client *clients, Client sender, int actual, const char*target, const char *buffer);
-static void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer);
-static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer);
-static void remove_client(Client *clients, int to_remove, int *actual);
-static void clear_clients(Client *clients, int actual);
+void init(void);
+void end(void);
+void app(void);
+int init_connection(void);
+void end_connection(int sock);
+int read_client(SOCKET sock, char *buffer);
+void write_client(SOCKET sock, const char *buffer, size_t n);
+void init_game(Client *player0, Client *player1);
+void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it);
+void send_message_to_client(Client receiver, char *buffer);
+Client *find_client_by_name(Client *clients, int actual, const char *name, char *error);
+void remove_client(Client *clients, int to_remove, int *actual);
+void clear_clients(Client *clients, int actual);
 
 #endif /* guard */

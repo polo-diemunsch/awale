@@ -2,6 +2,7 @@
 #define COMMUNICATION_H
 
 #include <stdio.h>
+
 #include "../game/awale.h"
 
 #define CRLF        "\r\n"
@@ -25,7 +26,7 @@ size_t serialize_player(Player *player, char *buffer);
 
 size_t unserialize_player(Player *player, const char *buffer);
 
-size_t serialize_game_init(Game *game, unsigned char which_player_is_it, char *buffer);
+size_t serialize_game(Game *game, unsigned char which_player_is_it, char *buffer);
 
 unsigned char unserialize_game(Game *game, const char *buffer);
 

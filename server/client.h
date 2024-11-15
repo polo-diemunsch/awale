@@ -7,6 +7,12 @@
 typedef struct {
    SOCKET sock;
    char name[NAME_SIZE];
+   Game *game;
 } Client;
+
+typedef struct {
+   Client *challenger;
+   Client *challengee;
+} Challenge;
 
 #endif /* guard */

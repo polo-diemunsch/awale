@@ -25,7 +25,7 @@ void collect_seeds(Game *game, unsigned char player, unsigned char current_slot)
 char is_feeding_move(Game *game, unsigned char player, unsigned char slot);
 char is_starving_move(Game *game, unsigned char player, unsigned char current_slot);
 char exists_move_to_feed(Game *game, unsigned char player);
-Game *create_game(char * player1_name, char * player2_name, unsigned char direction);
+Game *create_game(char * player0_name, char * player1_name, unsigned char direction);
 int execute_round(Game * game, unsigned char player, unsigned char slot);
 void print_game(Game * game);
 

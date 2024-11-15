@@ -5,9 +5,10 @@
 
 #include "server.h"
 #include "client.h"
+#include "commands.h"
 #include "../lib/console.h"
 
-static void init(void)
+void init(void)
 {
 #ifdef WIN32
    WSADATA wsa;
@@ -20,14 +21,14 @@ static void init(void)
 #endif
 }
 
-static void end(void)
+void end(void)
 {
 #ifdef WIN32
    WSACleanup();
 #endif
 }
 
-static void app(void)
+void app(void)
 {
    SOCKET sock = init_connection();
    char buffer[BUF_SIZE];
@@ -36,6 +37,8 @@ static void app(void)
    int max = sock;
    /* an array for all clients */
    Client clients[MAX_CLIENTS];
+   /* an array for all challenges */
+   Challenge challenges[MAX_CLIENTS * MAX_CLIENTS];
 
    fd_set rdfs;
 
@@ -94,15 +97,16 @@ static void app(void)
 
          Client c = { csock };
          strncpy(c.name, buffer, NAME_SIZE);
+         c.game = NULL;
          clients[actual] = c;
          actual++;
 
-         // char message[BUF_SIZE - 1];
-         // snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
-         // send_message_to_client(c, message);
+         char message[BUF_SIZE - 1];
+         snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+         send_message_to_client(c, message);
 
-         Game *game = create_game(c.name, "Bob", 0);
-         send_game_init_to_client(c, game, 0);
+         // Game *game = create_game(c.name, "Bob", 0);
+         // send_game_init_to_client(c, game, 0);
       }
       else
       {
@@ -112,7 +116,7 @@ static void app(void)
             /* a client is talking */
             if(FD_ISSET(clients[i].sock, &rdfs))
             {
-               Client client = clients[i];
+               Client *client = &clients[i];
                int c = read_client(clients[i].sock, buffer);
                /* client disconnected */
                if(c == 0)
@@ -133,15 +137,30 @@ static void app(void)
                if (strcmp(command, "send") == 0)
                {
                   char *target = strtok_r(NULL, " ", &remainder);
-                  send_message(clients, client, actual, target, remainder);
+                  send_message(clients, *client, actual, target, remainder);
+               }
+               else if (strcmp(command, "challenge") == 0)
+               {
+                  char *target = strtok_r(NULL, " ", &remainder);
+                  char error[BUF_SIZE - 1];
+                  Client *challengee = find_client_by_name(clients, actual, target, error);
+                  if (challengee != NULL)
+                  {
+                     if (challenge(client, challengee, &challenges) == 1)
+                        init_game(client, challengee);
+                  }
+                  else
+                  {
+                     send_message_to_client(*client, error);
+                  }
                }
                else
                {
-                  char message[BUF_SIZE];
-                  char truncated_command[BUF_SIZE - 46];
-                  strncpy(truncated_command, command, BUF_SIZE - 46);
+                  char message[BUF_SIZE - 1];
+                  char truncated_command[BUF_SIZE - 47];
+                  strncpy(truncated_command, command, BUF_SIZE - 47);
                   snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
-                  send_message_to_client(client, message);
+                  send_message_to_client(*client, message);
                }
 
                printf("%s\n", buffer);
@@ -155,7 +174,22 @@ static void app(void)
    end_connection(sock);
 }
 
-static void clear_clients(Client *clients, int actual)
+Client *find_client_by_name(Client *clients, int actual, const char *name, char *error)
+{
+   int i;
+   for (i = 0; i < actual; i++)
+   {
+      if (strcmp(name, clients[i].name) == 0)
+         return &clients[i];
+   }
+
+   char player_name[BUF_SIZE - 47];
+   strncpy(player_name, name, BUF_SIZE - 47);
+   snprintf(error, BUF_SIZE - 1, "%sError: player %s%s%s not found%s", ERROR_COLOR, OPPONENT_COLOR, player_name, ERROR_COLOR, RESET);
+   return NULL;
+}
+
+void clear_clients(Client *clients, int actual)
 {
    int i = 0;
    for(i = 0; i < actual; i++)
@@ -164,7 +198,7 @@ static void clear_clients(Client *clients, int actual)
    }
 }
 
-static void remove_client(Client *clients, int to_remove, int *actual)
+void remove_client(Client *clients, int to_remove, int *actual)
 {
    /* we remove the client in the array */
    memmove(clients + to_remove, clients + to_remove + 1, (*actual - to_remove - 1) * sizeof(Client));
@@ -172,15 +206,15 @@ static void remove_client(Client *clients, int to_remove, int *actual)
    (*actual)--;
 }
 
-static void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it)
+void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it)
 {
    char buffer[BUF_SIZE];
    *buffer = GAME_INIT;
-   size_t n = serialize_game_init(game, which_player_is_it, buffer + 1);
+   size_t n = serialize_game(game, which_player_is_it, buffer + 1);
    write_client(receiver.sock, buffer, n + 1);
 }
 
-static void send_message_to_client(Client receiver, char *message)
+void send_message_to_client(Client receiver, char *message)
 {
    char buffer[BUF_SIZE];
    *buffer = MESSAGE;
@@ -188,59 +222,16 @@ static void send_message_to_client(Client receiver, char *message)
    write_client(receiver.sock, buffer, n + 1);
 }
 
-static void send_message(Client *clients, Client sender, int actual, const char*target, const char *buffer)
+void init_game(Client *player0, Client *player1)
 {
-   if (strcmp(target, "all") == 0)
-   {
-      send_message_to_all_clients(clients, sender, actual, buffer);
-   }
-   else
-   {
-      int i;
-      for (i = 0; i < actual; i++)
-      {
-         if (strcmp(target, clients[i].name) == 0)
-         {
-            if (sender.sock != clients[i].sock)
-               send_message_from_client_to_client(clients[i], sender, buffer);
-            else
-               send_message_to_client(sender, "\033[36mhttps://www.santemagazine.fr/psycho-sexo/psycho/10-facons-de-se-faire-des-amis-178690\033[0m");
-
-            return;
-         }
-      }
-
-      char message[BUF_SIZE - 1];
-      char player_name[BUF_SIZE - 47];
-      strncpy(player_name, target, BUF_SIZE - 47);
-      snprintf(message, BUF_SIZE - 1, "%sError: player %s%s%s not found%s", ERROR_COLOR, OPPONENT_COLOR, player_name, ERROR_COLOR, RESET);
-      send_message_to_client(sender, message);
-   }
+   Game *game = create_game(player0->name, player1->name, 0);
+   player0->game = game;
+   player1->game = game;
+   send_game_init_to_client(*player0, game, 0);
+   send_game_init_to_client(*player1, game, 1);
 }
 
-static void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer)
-{
-   char message[BUF_SIZE];
-
-   snprintf(message, BUF_SIZE, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender.name, BWHITE, buffer, RESET);
-   send_message_to_client(receiver, message);
-
-   snprintf(message, BUF_SIZE, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver.name, BWHITE, buffer, RESET);
-   send_message_to_client(sender, message);
-}
-
-static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer)
-{
-   int i = 0;
-   char message[BUF_SIZE - 1];
-   for (i = 0; i < actual; i++)
-   {
-      snprintf(message, BUF_SIZE, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, sender.name, RESET, buffer);
-      send_message_to_client(clients[i], message);
-   }
-}
-
-static int init_connection(void)
+int init_connection(void)
 {
    SOCKET sock = socket(AF_INET, SOCK_STREAM, 0);
    SOCKADDR_IN sin = { 0 };
@@ -270,12 +261,12 @@ static int init_connection(void)
    return sock;
 }
 
-static void end_connection(int sock)
+void end_connection(int sock)
 {
    closesocket(sock);
 }
 
-static int read_client(SOCKET sock, char *buffer)
+int read_client(SOCKET sock, char *buffer)
 {
    int n = 0;
 
@@ -291,7 +282,7 @@ static int read_client(SOCKET sock, char *buffer)
    return n;
 }
 
-static void write_client(SOCKET sock, const char *buffer, size_t n)
+void write_client(SOCKET sock, const char *buffer, size_t n)
 {
    if(send(sock, buffer, n, 0) < 0)
    {

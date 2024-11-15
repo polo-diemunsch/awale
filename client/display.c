@@ -76,12 +76,14 @@ void display_menu(Position position)
     color_printf("player", BBLUE);
     printf("             challenge a player to a duel / accept\n");
     move_cursor_right(first_column);
-    printf("                             the challenge from someone\n");
+    printf("                             the challenge from a player\n");
 
     move_cursor_right(first_column);
-    color_printf("cancel_challenge ", BYELLOW);
+    color_printf("decline_challenge ", BYELLOW);
     color_printf("player", BBLUE);
-    printf("      cancel a challenge sent to a player\n");
+    printf("     decline a challenge from a player /\n");
+    move_cursor_right(first_column);
+    printf("                             cancel a challenge sent to a player\n");
 
     move_cursor_right(first_column);
     color_printf("historic ", BYELLOW);
@@ -126,7 +128,7 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
     char who_is_playing[MENU_AND_GAME_WIDTH + 1];
     strcpy(who_is_playing, is_my_turn ? "Your time to play" : "Waiting for opponent to play");
 
-    move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING);
+    move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING + 1);
     printf(display_string);
     color_printf(who_is_playing, is_my_turn ? OWN_COLOR : OPPONENT_COLOR);
     printf("\n\n\n");
