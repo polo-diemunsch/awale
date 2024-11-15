@@ -97,11 +97,11 @@ static void app(void)
          clients[actual] = c;
          actual++;
 
-         printf("%s\n", c.name);
-         char *message = malloc((100 + strlen(c.name)) * sizeof(char));
-         snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+         char message[BUF_SIZE - 1];
+         char player_name[BUF_SIZE - 43];
+         strncpy(player_name, c.name, BUF_SIZE - 43);
+         snprintf(message, BUF_SIZE, "%sBienvenue sur Awalé %s%s%s !%s", BYELLOW, OWN_COLOR, player_name, BYELLOW, RESET);
          send_message_to_client(c, message);
-         free(message);
       }
       else
       {
@@ -136,10 +136,11 @@ static void app(void)
                }
                else
                {
-                  char *message = malloc((100 + strlen(command)) * sizeof(char));
-                  snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, command, ERROR_COLOR, RESET);
+                  char message[BUF_SIZE];
+                  char truncated_command[BUF_SIZE - 46];
+                  strncpy(truncated_command, command, BUF_SIZE - 46);
+                  snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
                   send_message_to_client(client, message);
-                  free(message);
                }
 
                printf("%s\n", buffer);
@@ -200,31 +201,37 @@ static void send_message(Client *clients, Client sender, int actual, const char*
          }
       }
 
-      char *message = malloc((100 + strlen(target)) * sizeof(char));
-      snprintf(message, BUF_SIZE, "%sError: player %s%s%s not found%s", ERROR_COLOR, OPPONENT_COLOR, target, ERROR_COLOR, RESET);
+      char message[BUF_SIZE - 1];
+      char player_name[BUF_SIZE - 47];
+      strncpy(player_name, target, BUF_SIZE - 47);
+      snprintf(message, BUF_SIZE - 1, "%sError: player %s%s%s not found%s", ERROR_COLOR, OPPONENT_COLOR, player_name, ERROR_COLOR, RESET);
       send_message_to_client(sender, message);
-      free(message);
    }
 }
 
 static void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer)
 {
    char message[BUF_SIZE];
+   char player_name[BUF_SIZE - 27];
 
-   snprintf(message, BUF_SIZE, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender.name, BWHITE, buffer, RESET);
+   strncpy(player_name, sender.name, BUF_SIZE - 27);
+   snprintf(message, BUF_SIZE, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, player_name, BWHITE, buffer, RESET);
    send_message_to_client(receiver, message);
 
-   snprintf(message, BUF_SIZE, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver.name, BWHITE, buffer, RESET);
+   strncpy(player_name, receiver.name, BUF_SIZE - 27);
+   snprintf(message, BUF_SIZE, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, player_name, BWHITE, buffer, RESET);
    send_message_to_client(sender, message);
 }
 
 static void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer)
 {
    int i = 0;
-   char message[BUF_SIZE];
+   char message[BUF_SIZE - 1];
+   char player_name[BUF_SIZE - 12];
    for (i = 0; i < actual; i++)
    {
-      snprintf(message, BUF_SIZE, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, sender.name, RESET, buffer);
+      strncpy(player_name, sender.name, BUF_SIZE - 12);
+      snprintf(message, BUF_SIZE, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, player_name, RESET, buffer);
       send_message_to_client(clients[i], message);
    }
 }
