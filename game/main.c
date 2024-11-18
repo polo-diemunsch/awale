@@ -33,25 +33,24 @@ while (true) {
     john_empty = true;
     doe_empty = true;
 
-    for (int i = 0; i < 6; ++i) {
-        if (game->board[i] > 0) john_empty = false;
-        if (game->board[6+i] > 0) doe_empty = false;
-    }
+//     for (int i = 0; i < 6; ++i) {
+//         if (game->board[i] > 0) john_empty = false;
+//         if (game->board[6+i] > 0) doe_empty = false;
+//     }
 
-    if (john_empty || doe_empty) break;
+//     if (john_empty || doe_empty) break;
 
-    // Doe’s turn (try from left to right)
-    for (int i = 6; i < 12; ++i) {
-        if (game->board[i] > 0) {
-            execute_round(game, 1, i);
-            print_game(game);
-            break;
-        }
-    }
-}
+//     // Doe’s turn (try from left to right)
+//     for (int i = 6; i < 12; ++i) {
+//         if (game->board[i] > 0) {
+//             execute_round(game, 1, i);
+//             print_game(game);
+//             break;
+//         }
+//     }
+ }
 
 execute_round(game, 1, 10); //6 should not be allowed, should feed john
 print_game(game);
-
-
+return 0;
 }

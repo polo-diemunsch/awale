@@ -15,7 +15,11 @@ typedef struct
     char board[BOARD_SIZE];
     unsigned char round;
     unsigned char turn;
-    unsigned char direction; //clockwise=0, anti-clockwise=1
+    unsigned char direction; 
+    unsigned char history [160];
+    unsigned char nb_identical_rounds;
+    unsigned char winner;
+    unsigned char name [400];
 } Game;
 
 int slot_belongs_to_player(unsigned char player, unsigned char slot);
@@ -29,4 +33,4 @@ Game *create_game(char * player0_name, char * player1_name, unsigned char direct
 int execute_round(Game * game, unsigned char player, unsigned char slot);
 void print_game(Game * game);
 
-#endif /* guard */
+#endif 

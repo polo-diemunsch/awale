@@ -5,9 +5,11 @@
 #include <time.h>
 
 #include "awale.h"
+#include "../communication/communication.h"
 
 #define FALSE 0
 #define TRUE 1
+#define BUF_SIZE 1024
 
 //useful functions
 int slot_belongs_to_player(unsigned char player, unsigned char slot)
@@ -88,9 +90,11 @@ char is_starving_move(Game *game, unsigned char player, unsigned char current_sl
     Game *game_copy = malloc(sizeof(Game));
     *game_copy = *game;
     collect_seeds(game_copy, player, current_slot);
-    if (player_is_broke(game_copy, other_player))
+    if (player_is_broke(game_copy, other_player)){
+        free(game_copy);
         return 1;
-
+    }
+    free(game_copy);
     return 0;
 }
 
@@ -129,9 +133,34 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
         .players = {player0, player1},
         .board = {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4},
         .round = 0,
-        .turn = 0, //rand() % 2,
-        .direction = direction
+        .turn = rand() % 2,
+        .direction = direction,
     };
+    //to fill the name
+    time_t now = time(NULL);         
+    struct tm *lt = localtime(&now);  
+    char datetime_str[30];
+    if (lt != NULL) {
+        strftime(datetime_str, sizeof(datetime_str), "%Y-%m-%d_%H-%M-%S", lt);
+    }else{
+        printf("Error in game creation");
+        free(game);
+        return NULL;
+    }
+        snprintf((char *)game->name, sizeof(game->name), "%s_%s_%s", player0_name, player1_name, datetime_str);
+    //save in a file
+    FILE * f;
+    f=fopen((char *)game->name,"a");
+    char *game_init = malloc(BUF_SIZE); 
+    if (!game_init) {
+        perror("Failed to allocate memory for game_init");
+        free(game);
+        return NULL;
+    }
+    serialize_game_init(game,(unsigned char)0,game_init);//serialize_game_init_history(game,game_init);
+    fprintf(f,"%s",game_init);
+    fclose(f);
+
     return game;
 }
 
@@ -191,19 +220,46 @@ int execute_round(Game *game, unsigned char player, unsigned char slot)
             collect_seeds(game, player, current_slot);
     }
 
+    //update history
+    for(int i=0;i<12;++i){
+        game->history[game->round*12+i]=game->board[i];
+    }
+    for(int i=0;i<12;++i){
+        if(game->history[game->round*12+i]!=game->history[game->round*11+i]){
+            //int nb_id_rounds = 0; 
+            //memcpy(game->nb_identical_rounds, &nb_id_rounds, sizeof(nb_id_rounds));
+            game->nb_identical_rounds=0;
+            break;
+            }else{
+                game->nb_identical_rounds++;
+            }
+        
+    }
+
     //check if a player won with their score
     if(game->players[player].score > 24)
     {
         printf("%s is the winner!", game->players[player].name);
+        game->winner=player;
         return 1;
     }
-
-    //check that it is still possible to catch seeds
-    //ask players?
     
     game->turn = (game->turn + 1) % 2;
     game->round++;
     return 0;
+
+    //check if the rounds have been identical for 30 rounds
+    if(game->nb_identical_rounds>29){
+        game->winner=(game->players[0].score > game->players[2].score) ? 0 : 1;
+        printf("Game is stuck.%c won.\n",game->winner);
+        
+    }
+
+    //history save
+    FILE * f;
+    f=fopen((char *)game->name,"a");
+    fprintf(f,"%d",itoa(slot)); 
+    fclose(f);
 }
 
 void print_game(Game *game)
@@ -223,5 +279,7 @@ void print_game(Game *game)
     printf("Scores :     %s: %d      %s: %d\n",game->players[0].name,game->players[0].score,game->players[1].name,game->players[1].score);
     printf("\n\n");
 }
+
+
             
 
