@@ -9,4 +9,6 @@ void send_message_to_all_clients(Client *clients, Client sender, int actual, con
 
 int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MAX_CLIENTS * MAX_CLIENTS]);
 
+int play(Client *client, char *move);
+
 #endif /* guard */

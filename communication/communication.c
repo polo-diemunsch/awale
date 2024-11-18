@@ -45,7 +45,7 @@ size_t serialize_game(Game *game, unsigned char which_player_is_it, char *buffer
     length += serialize_player(&(game->players[0]), buffer + length);
     length += serialize_player(&(game->players[1]), buffer + length);
 
-    strncpy(buffer + length, game->board, BOARD_SIZE);
+    memcpy(buffer + length, game->board, BOARD_SIZE * sizeof(char));
     length += BOARD_SIZE;
 
     int round = htons(game->round);
@@ -71,7 +71,7 @@ unsigned char unserialize_game(Game *game, const char *buffer)
     length += unserialize_player(&(game->players[0]), buffer + length);
     length += unserialize_player(&(game->players[1]), buffer + length);
 
-    strncpy(game->board, buffer + length, BOARD_SIZE);
+    memcpy(game->board, buffer + length, BOARD_SIZE * sizeof(char));
     length += BOARD_SIZE;
 
     int round;
@@ -113,3 +113,49 @@ size_t serialize_game_init_history (Game *game, char *buffer)
     return length;
 }
 
+size_t serialize_game_state(Game *game, char *buffer)
+{
+    size_t length = 0;
+
+    memcpy(buffer + length, game->board, BOARD_SIZE * sizeof(char));
+    length += BOARD_SIZE;
+
+    int round = htons(game->round);
+    memcpy(buffer + length, &round, sizeof(int));
+    length += sizeof(int) / sizeof(char);
+
+    *((char *)(buffer + length)) = game->turn;
+    length++;
+
+    *((char *)(buffer + length)) = game->players[0].score;
+    length++;
+
+    *((char *)(buffer + length)) = game->players[1].score;
+    length++;
+
+    return length;
+}
+
+size_t unserialize_game_state(Game *game, const char *buffer)
+{
+    size_t length = 0;
+
+    memcpy(game->board, buffer + length, BOARD_SIZE * sizeof(char));
+    length += BOARD_SIZE;
+
+    int round;
+    memcpy(&round, buffer + length, sizeof(int));
+    game->round = ntohs(round);
+    length += sizeof(int) / sizeof(char);
+
+    game->turn = *(buffer + length);
+    length++;
+
+    game->players[0].score = *(buffer + length);
+    length++;
+
+    game->players[1].score = *(buffer + length);
+    length++;
+
+    return length;
+}

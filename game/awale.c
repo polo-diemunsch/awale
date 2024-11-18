@@ -6,6 +6,7 @@
 
 #include "awale.h"
 #include "../communication/communication.h"
+#include "../lib/console.h"
 
 #define FALSE 0
 #define TRUE 1
@@ -40,18 +41,17 @@ int player_is_broke(Game *game, unsigned char player)
 char distribute_seeds(Game *game, unsigned char slot)
 {
    int seeds = game->board[slot];
-    game->board[slot]=0; //empty slot where seeds were taken
+    game->board[slot] = 0; //empty slot where seeds were taken
 
     unsigned char current_slot = slot;
-    for (int i = 1; i <= seeds; ++i)
+    while (seeds > 0)
     {
         current_slot = (current_slot + 1) % BOARD_SIZE; //slot in which we are about to add a seed
-        if(current_slot == slot) //except if it is the one we took the seeds in
+        if(current_slot != slot) //except if it is the one we took the seeds in
         {
-            i--;
-            continue;
+            game->board[current_slot]++; //seed added
+            seeds--;
         }
-        game->board[current_slot]++; //seed added
     }
     return current_slot;
 }
@@ -60,9 +60,12 @@ void collect_seeds(Game *game, unsigned char player, unsigned char current_slot)
 {
     while ((game->board[current_slot] == 2 || game->board[current_slot] == 3) && !slot_belongs_to_player(player, current_slot))
     { 
-        game->players[player].score += game->board[current_slot]; //increment score
-        game->board[current_slot] = 0; //empty slot
-        current_slot--;
+        game->players[player].score += game->board[current_slot]; // increment score
+        game->board[current_slot] = 0; // empty slot
+        if (current_slot == 0)
+            current_slot = BOARD_SIZE - 1;
+        else
+            current_slot--;
     }
 }
 
@@ -165,26 +168,26 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
 }
 
 //main function
-int execute_round(Game *game, unsigned char player, unsigned char slot)
+int execute_round(Game *game, unsigned char player, unsigned char slot, char *error)
 {
     //returns 0 if goes correctly
     //returns -1 if the move was not valid
     //returns 1 if game over
     if (game->turn != player)
     {
-        printf("Wrong player!\n");
+        snprintf(error, BUF_SIZE - 1, "%sError: wrong player.%s", ERROR_COLOR, RESET);
         return -1;
     }
     
     if (slot_belongs_to_player(player, slot) != 1)
     {
-        printf("Slot does not belong to player!\n");
+        snprintf(error, BUF_SIZE - 1, "%sError: slot does not belong to player.%s", ERROR_COLOR, RESET);
         return -1;
     }
 
     if (game->board[slot] == 0)
     {
-        printf("Slot is empty!");
+        snprintf(error, BUF_SIZE - 1, "%sError: slot is empty.%s", ERROR_COLOR, RESET);
         return -1;
     }
 
@@ -192,10 +195,9 @@ int execute_round(Game *game, unsigned char player, unsigned char slot)
     char other_player = ((player + 1) % 2);
     if(player_is_broke(game, other_player))
     {
-        printf("Other player is broke, you have to feed him\n");
         if(!is_feeding_move(game, player, slot) && exists_move_to_feed(game, player))
         {
-            printf("You have to select a move that feeds the other player!");
+            snprintf(error, BUF_SIZE - 1, "%sError: the opponent is broke, ou have to select a move that feeds them.%s", ERROR_COLOR, RESET);
             return -1;
         }
         else
@@ -205,9 +207,9 @@ int execute_round(Game *game, unsigned char player, unsigned char slot)
             {
                 game->players[player].score += game->board[i];
                 game->board[i] = 0;
-                return 1;
             }
             printf("Game over! %s won",game->players[player].name);
+            return 1;
         }
     }
 
@@ -243,23 +245,24 @@ int execute_round(Game *game, unsigned char player, unsigned char slot)
         game->winner=player;
         return 1;
     }
-    
-    game->turn = (game->turn + 1) % 2;
-    game->round++;
-    return 0;
 
     //check if the rounds have been identical for 30 rounds
     if(game->nb_identical_rounds>29){
         game->winner=(game->players[0].score > game->players[2].score) ? 0 : 1;
-        printf("Game is stuck.%c won.\n",game->winner);
-        
+        printf("Game is stuck. %c won.\n",game->winner);
+        return 1;
     }
+
+    game->turn = (game->turn + 1) % 2;
+    game->round++;
 
     //history save
     FILE * f;
     f=fopen((char *)game->name,"a");
     fprintf(f,"%u",slot); 
     fclose(f);
+
+    return 0;
 }
 
 void print_game(Game *game)

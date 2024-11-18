@@ -139,12 +139,12 @@ void app(void)
 
                command = strtok_r(buffer_copy, " ", &remainder);
 
-               if (strcmp(command, "send") == 0)
+               if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
                {
                   char *target = strtok_r(NULL, " ", &remainder);
                   send_message(clients, *client, actual, target, remainder);
                }
-               else if (strcmp(command, "challenge") == 0)
+               else if (strcmp(command, "challenge") == 0 || strcmp(command, "c") == 0)
                {
                   char *target = strtok_r(NULL, " ", &remainder);
                   char error[BUF_SIZE - 1];
@@ -157,6 +157,23 @@ void app(void)
                   else
                   {
                      send_message_to_client(*client, error);
+                  }
+               }
+               else if (strcmp(command, "play") == 0 || strcmp(command, "p") == 0)
+               {
+                  char *move = strtok_r(NULL, " ", &remainder);
+                  int play_result = play(client, move);
+                  if (play_result == 0)
+                  {
+                     Game *game = client->game;
+                     for (int i = 0; i < BOARD_SIZE; ++i)
+                        printf("%u ", game->board[i]);
+                     printf("\n");
+                     char error[BUF_SIZE - 1];
+                     Client *opponent = find_client_by_name(clients, actual, game->players[game->turn].name, error);
+
+                     send_game_state_to_client(*client, game);
+                     send_game_state_to_client(*opponent, game);
                   }
                }
                else
@@ -216,6 +233,14 @@ void send_game_init_to_client(Client receiver, Game *game, unsigned char which_p
    char buffer[BUF_SIZE];
    *buffer = GAME_INIT;
    size_t n = serialize_game(game, which_player_is_it, buffer + 1);
+   write_client(receiver.sock, buffer, n + 1);
+}
+
+void send_game_state_to_client(Client receiver, Game *game)
+{
+   char buffer[BUF_SIZE];
+   *buffer = GAME_STATE;
+   size_t n = serialize_game_state(game, buffer + 1);
    write_client(receiver.sock, buffer, n + 1);
 }
 

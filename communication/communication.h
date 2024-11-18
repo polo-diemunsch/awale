@@ -32,4 +32,8 @@ size_t serialize_game_init_history (Game *game, char *buffer);
 
 unsigned char unserialize_game(Game *game, const char *buffer);
 
+size_t serialize_game_state(Game *game, char *buffer);
+
+size_t unserialize_game_state(Game *game, const char *buffer);
+
 #endif /* guard */

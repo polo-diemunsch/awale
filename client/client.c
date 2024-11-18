@@ -138,7 +138,7 @@ static void app(const char *address, const char *name)
                if (messages->newest_message_index == messages->oldest_message_index)
                   messages->oldest_message_index = mod(messages->oldest_message_index + 1, MESSAGES_COUNT);
                break;
-            
+
             case GAME_INIT:
                if (game == NULL)
                {
@@ -147,6 +147,11 @@ static void app(const char *address, const char *name)
                   game->players[1].name = NULL;
                   who_am_i = unserialize_game(game, buffer + 1);
                }
+               break;
+
+            case GAME_STATE:
+               if (game != NULL)
+                  unserialize_game_state(game, buffer + 1);
                break;
 
             default:
@@ -165,6 +170,9 @@ static void app(const char *address, const char *name)
          free(messages->messages[i]);
    }
    free(messages);
+
+   if (game != NULL)
+      free(game);
 
    clear_screen();
 }
