@@ -258,7 +258,7 @@ int execute_round(Game *game, unsigned char player, unsigned char slot)
     //history save
     FILE * f;
     f=fopen((char *)game->name,"a");
-    fprintf(f,"%d",itoa(slot)); 
+    fprintf(f,"%u",slot); 
     fclose(f);
 }
 

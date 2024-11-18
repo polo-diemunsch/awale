@@ -53,9 +53,14 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
 {
    char message[BUF_SIZE - 1];
 
+   if (challenger->sock == challengee->sock)
+   {
+      send_message_to_client(*challenger, "\033[36mhttps://www.santemagazine.fr/psycho-sexo/psycho/10-facons-de-se-faire-des-amis-178690\033[0m");
+      return -1;
+   }
    if (challenger->game != NULL)
    {
-      snprintf(message, BUF_SIZE - 1, "%sYou can't accept a challenge when you're already playing.%s", INFORMATION_COLOR, RESET);
+      snprintf(message, BUF_SIZE - 1, "%sYou can't challenge when you are already playing.%s", INFORMATION_COLOR, RESET);
       send_message_to_client(*challenger, message);
       return -1;
    }
@@ -75,13 +80,14 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
       Client *current_challengee = (*challenges)[i].challengee;
       if (current_challenger != NULL && current_challenger->sock == challengee->sock && current_challengee != NULL && current_challengee->sock == challenger->sock)
       {
-         snprintf(message, BUF_SIZE - 1, "%s%s%s accepted your chalenge!%s", OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, RESET);
+         snprintf(message, BUF_SIZE - 1, "%s%s%s accepted your challenge!%s", OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, RESET);
          send_message_to_client(*challengee, message);
 
          // snprintf(message, BUF_SIZE - 1, "%sChallenge accepted!%s", INFORMATION_COLOR, RESET);
          // send_message_to_client(*challenger, message);
 
          (*challenges)[i].challenger = NULL;
+         (*challenges)[i].challengee = NULL;
 
          return 1;
       }
