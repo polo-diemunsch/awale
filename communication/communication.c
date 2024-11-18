@@ -113,4 +113,3 @@ size_t serialize_game_init_history (Game *game, char *buffer)
     return length;
 }
 
-

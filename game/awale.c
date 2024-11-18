@@ -157,7 +157,7 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
         free(game);
         return NULL;
     }
-    serialize_game_init(game,(unsigned char)0,game_init);//serialize_game_init_history(game,game_init);
+    serialize_game_init_history(game,game_init); //serialize_game_init(game,(unsigned char)0,game_init);
     fprintf(f,"%s",game_init);
     fclose(f);
 
