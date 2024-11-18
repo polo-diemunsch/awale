@@ -160,8 +160,7 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
         free(game);
         return NULL;
     }
-    serialize_game_init_history(game,game_init); //serialize_game_init(game,(unsigned char)0,game_init);
-    fprintf(f,"%s",game_init);
+    serialize_game_init_history(game,game_init); 
     fclose(f);
 
     return game;
@@ -245,6 +244,9 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
         game->winner=player;
         return 1;
     }
+    
+    game->turn = (game->turn + 1) % 2;
+    game->round++;
 
     //check if the rounds have been identical for 30 rounds
     if(game->nb_identical_rounds>29){
@@ -252,9 +254,6 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
         printf("Game is stuck. %c won.\n",game->winner);
         return 1;
     }
-
-    game->turn = (game->turn + 1) % 2;
-    game->round++;
 
     //history save
     FILE * f;

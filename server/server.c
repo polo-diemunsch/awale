@@ -106,6 +106,10 @@ void app(void)
          clients[actual] = c;
          actual++;
 
+         //persist client
+         FILE *  f;
+         fopen("players.txt")
+
          char message[BUF_SIZE - 1];
          snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
          send_message_to_client(c, message);
@@ -176,15 +180,24 @@ void app(void)
                      send_game_state_to_client(*opponent, game);
                   }
                }
-               else
-               {
+               else if (strcmp(command, "online") == 0) {
+                  char message[BUF_SIZE - 1], *put = message;
+                  snprintf(put,sizeof message-(put-message), "Online players: \n");
+                  put+=16;
+                  for(int i=0;i<=actual;++i){
+                     if (i>0 ){
+                        put+=snprintf(put, sizeof message-(put-message), " - "); 
+                     }
+                     put+=snprintf(put, sizeof message-(put-message), clients[i].name); 
+                  }
+                  send_message_to_client(*client, message);
+               } else {
                   char message[BUF_SIZE - 1];
                   char truncated_command[BUF_SIZE - 47];
                   strncpy(truncated_command, command, BUF_SIZE - 47);
                   snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
                   send_message_to_client(*client, message);
                }
-
                printf("%s\n", buffer);
                break;
             }
