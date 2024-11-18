@@ -39,6 +39,11 @@ void app(void)
    Client clients[MAX_CLIENTS];
    /* an array for all challenges */
    Challenge challenges[MAX_CLIENTS * MAX_CLIENTS];
+   for (int i = 0; i < MAX_CLIENTS * MAX_CLIENTS; i++)
+   {
+      challenges[i].challenger = NULL;
+      challenges[i].challengee = NULL;
+   }
 
    fd_set rdfs;
 

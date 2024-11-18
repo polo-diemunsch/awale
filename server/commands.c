@@ -78,7 +78,7 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
    {
       Client *current_challenger = (*challenges)[i].challenger;
       Client *current_challengee = (*challenges)[i].challengee;
-      if (current_challenger != NULL && current_challenger->sock == challengee->sock && current_challengee != NULL && current_challengee->sock == challenger->sock)
+      if (current_challenger != NULL && current_challengee != NULL && current_challenger->sock == challengee->sock && current_challengee->sock == challenger->sock)
       {
          snprintf(message, BUF_SIZE - 1, "%s%s%s accepted your challenge!%s", OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, RESET);
          send_message_to_client(*challengee, message);
