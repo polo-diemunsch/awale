@@ -154,6 +154,18 @@ static void app(const char *address, const char *name)
                   unserialize_game_state(game, buffer + 1);
                break;
 
+            case GAME_END:
+               if (game != NULL)
+               {
+                  free(game);
+                  game = NULL;
+               }
+               messages->newest_message_index = mod(messages->newest_message_index + 1, MESSAGES_COUNT);
+               read_string_from_buffer(&messages->messages[messages->newest_message_index], buffer + 1);
+               if (messages->newest_message_index == messages->oldest_message_index)
+                  messages->oldest_message_index = mod(messages->oldest_message_index + 1, MESSAGES_COUNT);
+               break;
+
             default:
                break;
          }

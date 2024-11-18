@@ -40,6 +40,7 @@ void write_client(SOCKET sock, const char *buffer, size_t n);
 void init_game(Client *player0, Client *player1);
 void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it);
 void send_game_state_to_client(Client receiver, Game *game);
+void send_game_end_to_client(Client receiver, Game *game);
 void send_message_to_client(Client receiver, char *buffer);
 Client *find_client_by_name(Client *clients, int actual, const char *name, char *error);
 void remove_client(Client *clients, int to_remove, int *actual);

@@ -106,10 +106,6 @@ void app(void)
          clients[actual] = c;
          actual++;
 
-         //persist client
-         FILE *  f;
-         fopen("players.txt")
-
          char message[BUF_SIZE - 1];
          snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
          send_message_to_client(c, message);
@@ -167,17 +163,24 @@ void app(void)
                {
                   char *move = strtok_r(NULL, " ", &remainder);
                   int play_result = play(client, move);
-                  if (play_result == 0)
+                  if (play_result != -1)
                   {
                      Game *game = client->game;
-                     for (int i = 0; i < BOARD_SIZE; ++i)
-                        printf("%u ", game->board[i]);
-                     printf("\n");
                      char error[BUF_SIZE - 1];
                      Client *opponent = find_client_by_name(clients, actual, game->players[game->turn].name, error);
 
-                     send_game_state_to_client(*client, game);
-                     send_game_state_to_client(*opponent, game);
+                     if (play_result == 0)
+                     {
+                        send_game_state_to_client(*client, game);
+                        send_game_state_to_client(*opponent, game);
+                     }
+                     else if (play_result == 1)
+                     {
+                        client->game = NULL;
+                        send_game_end_to_client(*client, game);
+                        opponent->game = NULL;
+                        send_game_end_to_client(*opponent, game);
+                     }
                   }
                }
                else if (strcmp(command, "online") == 0) {
@@ -254,6 +257,30 @@ void send_game_state_to_client(Client receiver, Game *game)
    char buffer[BUF_SIZE];
    *buffer = GAME_STATE;
    size_t n = serialize_game_state(game, buffer + 1);
+   write_client(receiver.sock, buffer, n + 1);
+}
+
+void send_game_end_to_client(Client receiver, Game *game)
+{
+   char buffer[BUF_SIZE];
+   *buffer = GAME_END;
+   char message[BUF_SIZE - 1];
+
+   unsigned char player = game->players[1].name == receiver.name;
+   unsigned char opponent = (player + 1) % 2;
+   
+   if (game->winner == player)
+      snprintf(message, BUF_SIZE - 1, "%sYou won against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+   else if (game->winner == opponent)
+      snprintf(message, BUF_SIZE - 1, "%sYou lost against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+   else if (game->winner == player + 2)
+      snprintf(message, BUF_SIZE - 1, "%sYou won by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+   else if (game->winner == opponent + 2)
+      snprintf(message, BUF_SIZE - 1, "%sYou lost by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+   else
+      snprintf(message, BUF_SIZE - 1, "%sThe game against %s%s%s ends in a draw (%u - %u).%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+
+   size_t n = write_string_to_buffer(message, buffer + 1);
    write_client(receiver.sock, buffer, n + 1);
 }
 

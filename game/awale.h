@@ -24,11 +24,11 @@ typedef struct
 
 int slot_belongs_to_player(unsigned char player, unsigned char slot);
 int player_is_broke(Game *game, unsigned char player);
-char distribute_seeds(Game *game, unsigned char slot);
+unsigned char distribute_seeds(Game *game, unsigned char slot);
 void collect_seeds(Game *game, unsigned char player, unsigned char current_slot);
-char is_feeding_move(Game *game, unsigned char player, unsigned char slot);
-char is_starving_move(Game *game, unsigned char player, unsigned char current_slot);
-char exists_move_to_feed(Game *game, unsigned char player);
+unsigned char is_feeding_move(Game *game, unsigned char player, unsigned char slot);
+unsigned char is_starving_move(Game *game, unsigned char player, unsigned char current_slot);
+unsigned char exists_move_to_feed(Game *game, unsigned char player);
 Game *create_game(char *player0_name, char *player1_name, unsigned char direction);
 int execute_round(Game *game, unsigned char player, unsigned char slot, char *error);
 void print_game(Game *game);

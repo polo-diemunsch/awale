@@ -38,7 +38,7 @@ int player_is_broke(Game *game, unsigned char player)
     return 1;
 }
 
-char distribute_seeds(Game *game, unsigned char slot)
+unsigned char distribute_seeds(Game *game, unsigned char slot)
 {
    int seeds = game->board[slot];
     game->board[slot] = 0; //empty slot where seeds were taken
@@ -63,13 +63,12 @@ void collect_seeds(Game *game, unsigned char player, unsigned char current_slot)
         game->players[player].score += game->board[current_slot]; // increment score
         game->board[current_slot] = 0; // empty slot
         if (current_slot == 0)
-            current_slot = BOARD_SIZE - 1;
-        else
-            current_slot--;
+            return;
+        current_slot--;
     }
 }
 
-char is_feeding_move(Game *game, unsigned char player, unsigned char slot)
+unsigned char is_feeding_move(Game *game, unsigned char player, unsigned char slot)
 {
     Game *game_copy = malloc(sizeof(Game));
     *game_copy = *game;
@@ -87,7 +86,7 @@ char is_feeding_move(Game *game, unsigned char player, unsigned char slot)
     return 0;
 }
 
-char is_starving_move(Game *game, unsigned char player, unsigned char current_slot)
+unsigned char is_starving_move(Game *game, unsigned char player, unsigned char current_slot)
 {
     int other_player = (player + 1) % 2;
     Game *game_copy = malloc(sizeof(Game));
@@ -101,7 +100,7 @@ char is_starving_move(Game *game, unsigned char player, unsigned char current_sl
     return 0;
 }
 
-char exists_move_to_feed(Game *game, unsigned char player)
+unsigned char exists_move_to_feed(Game *game, unsigned char player)
 { 
     //returns 1 if there exists a move to feed the other player
     for (int i = 0; i < BOARD_SIZE; ++i)
@@ -138,6 +137,7 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
         .round = 0,
         .turn = rand() % 2,
         .direction = direction,
+        .winner = 5,
     };
     //to fill the name
     time_t now = time(NULL);         
@@ -196,7 +196,7 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
     {
         if(!is_feeding_move(game, player, slot) && exists_move_to_feed(game, player))
         {
-            snprintf(error, BUF_SIZE - 1, "%sError: the opponent is broke, ou have to select a move that feeds them.%s", ERROR_COLOR, RESET);
+            snprintf(error, BUF_SIZE - 1, "%sError: the opponent is broke, you have to select a move that feeds them.%s", ERROR_COLOR, RESET);
             return -1;
         }
         else
@@ -207,7 +207,8 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
                 game->players[player].score += game->board[i];
                 game->board[i] = 0;
             }
-            printf("Game over! %s won",game->players[player].name);
+            game->turn = (game->turn + 1) % 2;
+            game->round++;
             return 1;
         }
     }
@@ -217,49 +218,54 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
     //check if seeds are gained
     if ((game->board[current_slot] == 2 || game->board[current_slot] == 3) && !slot_belongs_to_player(player, current_slot))
     {
-        if(!is_starving_move(game, player, slot))
+        if(!is_starving_move(game, player, current_slot))
             collect_seeds(game, player, current_slot);
     }
 
     //update history
-    for(int i=0;i<12;++i){
-        game->history[game->round*12+i]=game->board[i];
+    for(int i=0;i<BOARD_SIZE;++i)
+    {
+        game->history[game->round * BOARD_SIZE + i] = game->board[i];
     }
-    for(int i=0;i<12;++i){
-        if(game->history[game->round*12+i]!=game->history[game->round*11+i]){
+    for(int i=0;i<BOARD_SIZE;++i)
+    {
+        if(game->history[game->round * BOARD_SIZE + i] != game->history[game->round * (BOARD_SIZE - 1) + i]){
             //int nb_id_rounds = 0; 
             //memcpy(game->nb_identical_rounds, &nb_id_rounds, sizeof(nb_id_rounds));
             game->nb_identical_rounds=0;
             break;
-            }else{
-                game->nb_identical_rounds++;
-            }
-        
+        }
+        else
+        {
+            game->nb_identical_rounds++;
+        }
     }
 
-    //check if a player won with their score
-    if(game->players[player].score > 24)
-    {
-        printf("%s is the winner!", game->players[player].name);
-        game->winner=player;
-        return 1;
-    }
-    
     game->turn = (game->turn + 1) % 2;
     game->round++;
 
+    //check if a player won with their score
+    if (game->players[player].score > 24)
+    {
+        printf("%s is the winner!", game->players[player].name);
+        game->winner = player;
+        return 1;
+    }
+
     //check if the rounds have been identical for 30 rounds
-    if(game->nb_identical_rounds>29){
-        game->winner=(game->players[0].score > game->players[2].score) ? 0 : 1;
-        printf("Game is stuck. %c won.\n",game->winner);
+    if (game->nb_identical_rounds>29)
+    {
+        game->winner = (game->players[0].score != game->players[2].score)
+            ? (game->players[0].score < game->players[2].score)
+            : 5;
         return 1;
     }
 
     //history save
-    FILE * f;
-    f=fopen((char *)game->name,"a");
-    fprintf(f,"%u",slot); 
-    fclose(f);
+    // FILE * f;
+    // f=fopen((char *)game->name,"a");
+    // fprintf(f,"%u\n",slot); 
+    // fclose(f);
 
     return 0;
 }

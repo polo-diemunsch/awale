@@ -16,6 +16,7 @@ typedef enum {
     MESSAGE,
     GAME_INIT,
     GAME_STATE,
+    GAME_END,
 } CommunicationType;
 
 size_t write_string_to_buffer(const char *string, char *buffer);

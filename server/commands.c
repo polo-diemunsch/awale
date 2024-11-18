@@ -171,11 +171,6 @@ int play(Client *client, char *move)
       send_message_to_client(*client, message);
       return -1;
    }
-   else if (round_result == 1)
-   {
-      // TODO
-      return 1;
-   }
 
-   return 0;
+   return round_result;
 }
