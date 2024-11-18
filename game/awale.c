@@ -207,8 +207,6 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
                 game->players[player].score += game->board[i];
                 game->board[i] = 0;
             }
-            game->turn = (game->turn + 1) % 2;
-            game->round++;
             return 1;
         }
     }
@@ -241,9 +239,6 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
         }
     }
 
-    game->turn = (game->turn + 1) % 2;
-    game->round++;
-
     //check if a player won with their score
     if (game->players[player].score > 24)
     {
@@ -260,6 +255,9 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
             : 5;
         return 1;
     }
+
+    game->turn = (game->turn + 1) % 2;
+    game->round++;
 
     //history save
     // FILE * f;

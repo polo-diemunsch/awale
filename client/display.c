@@ -99,7 +99,6 @@ void display_menu(Position position)
     color_printf("game", BCYAN);
     printf("                  watch the replay of a game\n");
 
-    printf("\n");
     move_cursor_right((position.width - 7) / 2);
     color_printf("IN GAME\n", BWHITE);
 
@@ -108,7 +107,10 @@ void display_menu(Position position)
     color_printf("slot", BGREEN);
     printf("                    choose which slot to play\n");
 
-    printf("\n");
+    move_cursor_right(first_column);
+    color_printf("forfeit", BYELLOW);
+    printf("                      forfeit the game\n");
+
     move_cursor_right((position.width - 6) / 2);
     color_printf("REPLAY\n", BWHITE);
 
@@ -132,7 +134,7 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
     strcpy(who_is_playing, is_my_turn ? "Your time to play" : "Waiting for opponent to play");
 
     move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING + 1);
-    printf(display_string);
+    printf("%s", display_string);
     color_printf(who_is_playing, is_my_turn ? OWN_COLOR : OPPONENT_COLOR);
     printf("\n\n\n");
 

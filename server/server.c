@@ -108,7 +108,7 @@ void app(void)
 
          char message[BUF_SIZE - 1];
          snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
-         send_message_to_client(c, message);
+         send_message_to_client(&c, message);
 
          // Game *game = create_game(c.name, "Bob", 0);
          // send_game_init_to_client(c, game, 0);
@@ -134,6 +134,8 @@ void app(void)
                   break;
                }
 
+               printf("%s: %s\n", client->name, buffer);
+
                char buffer_copy[BUF_SIZE], *command, *remainder;
                strcpy(buffer_copy, buffer);
 
@@ -142,7 +144,7 @@ void app(void)
                if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
                {
                   char *target = strtok_r(NULL, " ", &remainder);
-                  send_message(clients, *client, actual, target, remainder);
+                  send_message(clients, client, actual, target, remainder);
                }
                else if (strcmp(command, "challenge") == 0 || strcmp(command, "c") == 0)
                {
@@ -156,7 +158,7 @@ void app(void)
                   }
                   else
                   {
-                     send_message_to_client(*client, error);
+                     send_message_to_client(client, error);
                   }
                }
                else if (strcmp(command, "play") == 0 || strcmp(command, "p") == 0)
@@ -167,23 +169,41 @@ void app(void)
                   {
                      Game *game = client->game;
                      char error[BUF_SIZE - 1];
-                     Client *opponent = find_client_by_name(clients, actual, game->players[game->turn].name, error);
+                     unsigned char other_player = (game->players[0].name == client->name);
+                     Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
 
                      if (play_result == 0)
                      {
-                        send_game_state_to_client(*client, game);
-                        send_game_state_to_client(*opponent, game);
+                        send_game_state_to_client(client, game);
+                        send_game_state_to_client(opponent, game);
                      }
                      else if (play_result == 1)
                      {
                         client->game = NULL;
-                        send_game_end_to_client(*client, game);
+                        send_game_end_to_client(client, game);
                         opponent->game = NULL;
-                        send_game_end_to_client(*opponent, game);
+                        send_game_end_to_client(opponent, game);
                      }
                   }
                }
-               else if (strcmp(command, "online") == 0) {
+               else if (strcmp(command, "forfeit") == 0 || strcmp(command, "ff") == 0)
+               {
+                  Game *game = client->game;
+                  if (game != NULL)
+                  {
+                     char error[BUF_SIZE - 1];
+                     unsigned char other_player = game->players[0].name == client->name;
+                     printf("%u\n", other_player);
+                     Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
+                     game->winner = other_player + 2;
+                     client->game = NULL;
+                     send_game_end_to_client(client, game);
+                     opponent->game = NULL;
+                     send_game_end_to_client(opponent, game);
+                  }
+               }
+               else if (strcmp(command, "online") == 0 || strcmp(command, "o") == 0)
+               {
                   char message[BUF_SIZE - 1], *put = message;
                   snprintf(put,sizeof message-(put-message), "Online players: \n");
                   put+=16;
@@ -193,15 +213,16 @@ void app(void)
                      }
                      put+=snprintf(put, sizeof message-(put-message), clients[i].name); 
                   }
-                  send_message_to_client(*client, message);
-               } else {
+                  send_message_to_client(client, message);
+               }
+               else
+               {
                   char message[BUF_SIZE - 1];
                   char truncated_command[BUF_SIZE - 47];
                   strncpy(truncated_command, command, BUF_SIZE - 47);
                   snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
-                  send_message_to_client(*client, message);
+                  send_message_to_client(client, message);
                }
-               printf("%s\n", buffer);
                break;
             }
          }
@@ -244,29 +265,29 @@ void remove_client(Client *clients, int to_remove, int *actual)
    (*actual)--;
 }
 
-void send_game_init_to_client(Client receiver, Game *game, unsigned char which_player_is_it)
+void send_game_init_to_client(Client *receiver, Game *game, unsigned char which_player_is_it)
 {
    char buffer[BUF_SIZE];
    *buffer = GAME_INIT;
    size_t n = serialize_game(game, which_player_is_it, buffer + 1);
-   write_client(receiver.sock, buffer, n + 1);
+   write_client(receiver->sock, buffer, n + 1);
 }
 
-void send_game_state_to_client(Client receiver, Game *game)
+void send_game_state_to_client(Client *receiver, Game *game)
 {
    char buffer[BUF_SIZE];
    *buffer = GAME_STATE;
    size_t n = serialize_game_state(game, buffer + 1);
-   write_client(receiver.sock, buffer, n + 1);
+   write_client(receiver->sock, buffer, n + 1);
 }
 
-void send_game_end_to_client(Client receiver, Game *game)
+void send_game_end_to_client(Client *receiver, Game *game)
 {
    char buffer[BUF_SIZE];
    *buffer = GAME_END;
    char message[BUF_SIZE - 1];
 
-   unsigned char player = game->players[1].name == receiver.name;
+   unsigned char player = (game->players[1].name == receiver->name);
    unsigned char opponent = (player + 1) % 2;
    
    if (game->winner == player)
@@ -281,15 +302,15 @@ void send_game_end_to_client(Client receiver, Game *game)
       snprintf(message, BUF_SIZE - 1, "%sThe game against %s%s%s ends in a draw (%u - %u).%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
 
    size_t n = write_string_to_buffer(message, buffer + 1);
-   write_client(receiver.sock, buffer, n + 1);
+   write_client(receiver->sock, buffer, n + 1);
 }
 
-void send_message_to_client(Client receiver, char *message)
+void send_message_to_client(Client *receiver, char *message)
 {
    char buffer[BUF_SIZE];
    *buffer = MESSAGE;
    size_t n = write_string_to_buffer(message, buffer + 1);
-   write_client(receiver.sock, buffer, n + 1);
+   write_client(receiver->sock, buffer, n + 1);
 }
 
 void init_game(Client *player0, Client *player1)
@@ -297,8 +318,8 @@ void init_game(Client *player0, Client *player1)
    Game *game = create_game(player0->name, player1->name, 0);
    player0->game = game;
    player1->game = game;
-   send_game_init_to_client(*player0, game, 0);
-   send_game_init_to_client(*player1, game, 1);
+   send_game_init_to_client(player0, game, 0);
+   send_game_init_to_client(player1, game, 1);
 }
 
 int init_connection(void)

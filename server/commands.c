@@ -3,7 +3,7 @@
 #include "commands.h"
 #include "../lib/console.h"
 
-void send_message(Client *clients, Client sender, int actual, const char*target, const char *buffer)
+void send_message(Client *clients, Client *sender, int actual, const char*target, const char *buffer)
 {
    if (strcmp(target, "all") == 0)
    {
@@ -15,10 +15,10 @@ void send_message(Client *clients, Client sender, int actual, const char*target,
       Client *receiver = find_client_by_name(clients, actual, target, error);
       if (receiver != NULL)
       {
-         if (sender.sock != receiver->sock)
-            send_message_from_client_to_client(*receiver, sender, buffer);
+         if (sender->sock != receiver->sock)
+            send_message_from_client_to_client(receiver, sender, buffer);
          else
-            send_message_to_client(sender, "\033[36mhttps://www.santemagazine.fr/psycho-sexo/psycho/10-facons-de-se-faire-des-amis-178690\033[0m");
+            send_message_to_client(sender, FRIENDS);
       }
       else
       {
@@ -27,25 +27,25 @@ void send_message(Client *clients, Client sender, int actual, const char*target,
    }
 }
 
-void send_message_from_client_to_client(Client receiver, Client sender, const char *buffer)
+void send_message_from_client_to_client(Client *receiver, Client *sender, const char *buffer)
 {
    char message[BUF_SIZE - 1];
 
-   snprintf(message, BUF_SIZE - 1, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender.name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE - 1, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender->name, BWHITE, buffer, RESET);
    send_message_to_client(receiver, message);
 
-   snprintf(message, BUF_SIZE - 1, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver.name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE - 1, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver->name, BWHITE, buffer, RESET);
    send_message_to_client(sender, message);
 }
 
-void send_message_to_all_clients(Client *clients, Client sender, int actual, const char *buffer)
+void send_message_to_all_clients(Client *clients, Client *sender, int actual, const char *buffer)
 {
    int i = 0;
    char message[BUF_SIZE - 1];
    for (i = 0; i < actual; i++)
    {
-      snprintf(message, BUF_SIZE - 1, "%s%s%s: %s", clients[i].sock != sender.sock ? OPPONENT_COLOR : OWN_COLOR, sender.name, RESET, buffer);
-      send_message_to_client(clients[i], message);
+      snprintf(message, BUF_SIZE - 1, "%s%s%s: %s", clients[i].sock != sender->sock ? OPPONENT_COLOR : OWN_COLOR, sender->name, RESET, buffer);
+      send_message_to_client(&clients[i], message);
    }
 }
 
@@ -55,19 +55,19 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
 
    if (challenger->sock == challengee->sock)
    {
-      send_message_to_client(*challenger, "\033[36mhttps://www.santemagazine.fr/psycho-sexo/psycho/10-facons-de-se-faire-des-amis-178690\033[0m");
+      send_message_to_client(challenger, FRIENDS);
       return -1;
    }
    if (challenger->game != NULL)
    {
       snprintf(message, BUF_SIZE - 1, "%sYou can't challenge when you are already playing.%s", INFORMATION_COLOR, RESET);
-      send_message_to_client(*challenger, message);
+      send_message_to_client(challenger, message);
       return -1;
    }
    if (challengee->game != NULL)
    {
       snprintf(message, BUF_SIZE - 1, "%s%s%s is already playing and can't accept your challenge. Try again later.%s", OPPONENT_COLOR, challengee->name, INFORMATION_COLOR, RESET);
-      send_message_to_client(*challenger, message);
+      send_message_to_client(challenger, message);
       return -1;
    }
 
@@ -81,7 +81,7 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
       if (current_challenger != NULL && current_challengee != NULL && current_challenger->sock == challengee->sock && current_challengee->sock == challenger->sock)
       {
          snprintf(message, BUF_SIZE - 1, "%s%s%s accepted your challenge!%s", OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, RESET);
-         send_message_to_client(*challengee, message);
+         send_message_to_client(challengee, message);
 
          // snprintf(message, BUF_SIZE - 1, "%sChallenge accepted!%s", INFORMATION_COLOR, RESET);
          // send_message_to_client(*challenger, message);
@@ -103,7 +103,7 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
       if (current_challenger != NULL && current_challenger->sock == challenger->sock && current_challengee != NULL && current_challengee->sock == challengee->sock)
       {
          snprintf(message, BUF_SIZE - 1, "%sYou already sent a challenge to %s%s%s", INFORMATION_COLOR, OPPONENT_COLOR, challengee->name, RESET);
-         send_message_to_client(*challenger, message);
+         send_message_to_client(challenger, message);
 
          return -1;
       }
@@ -117,10 +117,10 @@ int challenge(Client *challenger, Client *challengee, Challenge (*challenges)[MA
    (*challenges)[i_free].challengee = challengee;
 
    snprintf(message, BUF_SIZE - 1, "%sYou were challenged by %s%s%s. Use %schallenge %s%s to accept.%s", INFORMATION_COLOR, OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, OPPONENT_COLOR, challenger->name, INFORMATION_COLOR, RESET);
-   send_message_to_client(*challengee, message);
+   send_message_to_client(challengee, message);
 
    snprintf(message, BUF_SIZE - 1, "%sYou challenged %s%s%s.%s", INFORMATION_COLOR, OPPONENT_COLOR, challengee->name, INFORMATION_COLOR, RESET);
-   send_message_to_client(*challenger, message);
+   send_message_to_client(challenger, message);
 
    return 0;
 }
@@ -133,21 +133,21 @@ int play(Client *client, char *move)
    if (game == NULL)
    {
       snprintf(message, BUF_SIZE - 1, "%sError: you are not in a game.%s", ERROR_COLOR, RESET);
-      send_message_to_client(*client, message);
+      send_message_to_client(client, message);
       return -1;
    }
 
    if (client->name != game->players[game->turn].name)
    {
       snprintf(message, BUF_SIZE - 1, "%sError: it's not your turn to play.%s", ERROR_COLOR, RESET);
-      send_message_to_client(*client, message);
+      send_message_to_client(client, message);
       return -1;
    }
 
    if (strlen(move) != 1)
    {
       snprintf(message, BUF_SIZE - 1, "%sError: invalid move %s%s%s.%s", ERROR_COLOR, OWN_COLOR, move, ERROR_COLOR, RESET);
-      send_message_to_client(*client, message);
+      send_message_to_client(client, message);
       return -1;
    }
 
@@ -160,7 +160,7 @@ int play(Client *client, char *move)
    if (player_slot == -1)
    {
       snprintf(message, BUF_SIZE - 1, "%sError: invalid move %s%s%s.%s", ERROR_COLOR, OWN_COLOR, move, ERROR_COLOR, RESET);
-      send_message_to_client(*client, message);
+      send_message_to_client(client, message);
       return -1;
    }
 
@@ -168,7 +168,7 @@ int play(Client *client, char *move)
    int round_result = execute_round(game, game->turn, slot, message);
    if (round_result == -1)
    {
-      send_message_to_client(*client, message);
+      send_message_to_client(client, message);
       return -1;
    }
 
