@@ -64,6 +64,9 @@ void display_menu(Position position)
     color_printf("GENERAL\n", BWHITE);
 
     move_cursor_right(first_column);
+    color_printf("online ", BYELLOW);
+    printf("                      show online players\n");
+    move_cursor_right(first_column);
     color_printf("send ", BYELLOW);
     printf("[");
     color_printf("player", BBLUE);
