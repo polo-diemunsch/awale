@@ -1,6 +1,7 @@
 #include <string.h>
 
 #include "client.h"
+#include "../game/game.h"
 #include "../../lib/console.h"
 
 Client *find_client_by_name(Client *clients, int actual, const char *name, char *error)
@@ -20,6 +21,7 @@ Client *find_client_by_name(Client *clients, int actual, const char *name, char 
 
 void remove_client(Client *clients, int to_remove, int *actual)
 {
+   forfeit(&clients[to_remove], clients, *actual, 1);
    /* we remove the client in the array */
    memmove(clients + to_remove, clients + to_remove + 1, (*actual - to_remove - 1) * sizeof(Client));
    /* number client - 1 */

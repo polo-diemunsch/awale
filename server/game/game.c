@@ -5,13 +5,17 @@
 #include "../../game/awale.h"
 #include "../../lib/console.h"
 
-void init_game(Client *player0, Client *player1)
+Game *init_game(Client *player0, Client *player1)
 {
    Game *game = create_game(player0->name, player1->name, 0);
+
    player0->game = game;
    player1->game = game;
+
    send_game_init_to_client(player0, game, 0);
    send_game_init_to_client(player1, game, 1);
+
+   return game;
 }
 
 int play(Client *client, char *move)
@@ -62,4 +66,33 @@ int play(Client *client, char *move)
    }
 
    return round_result;
+}
+
+void forfeit(Client *client, Client *clients, int actual, int disconnected)
+{
+   Game *game = client->game;
+   if (game != NULL)
+   {
+      char error[BUF_SIZE - 1];
+      unsigned char other_player = game->players[0].name == client->name;
+      Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
+      game->winner = other_player + 2;
+      if (!disconnected)
+      {
+         end_game(client, opponent);
+      }
+      else
+      {
+         send_game_end_to_client(opponent, opponent->game);
+         opponent->game = NULL;
+      }
+   }
+}
+
+void end_game(Client *player0, Client *player1)
+{
+   send_game_end_to_client(player0, player0->game);
+   player0->game = NULL;
+   send_game_end_to_client(player1, player1->game);
+   player1->game = NULL;
 }

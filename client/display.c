@@ -216,7 +216,7 @@ void display_chat(Position position, Messages *messages)
     {
         messages->newest_displayed_message_index = messages->newest_message_index;
         index = messages->newest_message_index;
-        lines_left = position.height - VERTICAL_PADDING - 3;
+        lines_left = position.height - VERTICAL_PADDING - 2;
         while (lines_left > 0 && index != messages->oldest_message_index)
         {
             lines_left -= get_visual_length(messages->messages[index]) / (content_length + 1) + 1;

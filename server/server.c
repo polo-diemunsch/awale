@@ -45,6 +45,11 @@ void app(void)
    /* an array for all challenges */
    Challenge challenges[MAX_CLIENTS * MAX_CLIENTS];
 
+   /* the index for the array */
+   int actual_game = 0;
+   /* an array for all games */
+   Game *games[MAX_CLIENTS * MAX_CLIENTS * MAX_CLIENTS];
+
    fd_set rdfs;
 
    while(1)
@@ -140,77 +145,90 @@ void app(void)
 
                if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
                {
+                  char error[BUF_SIZE - 1];
+
                   char *target = strtok_r(NULL, " ", &remainder);
+                  if (target == NULL)
+                  {
+                     snprintf(error, BUF_SIZE - 1, "%sError: you must specify a target for your message.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
+                  }
+
                   send_message(clients, client, actual, target, remainder);
                }
                else if (strcmp(command, "challenge") == 0 || strcmp(command, "c") == 0)
                {
-                  char *target = strtok_r(NULL, " ", &remainder);
                   char error[BUF_SIZE - 1];
-                  Client *challengee = find_client_by_name(clients, actual, target, error);
-                  if (challengee != NULL)
+
+                  char *target = strtok_r(NULL, " ", &remainder);
+                  if (target == NULL)
                   {
-                     if (challenge(client, challengee, challenges, &actual_challenge) == 1)
-                        init_game(client, challengee);
+                     snprintf(error, BUF_SIZE - 1, "%sError: you must specify a player you want to challenge.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
                   }
-                  else
+
+                  Client *challengee = find_client_by_name(clients, actual, target, error);
+                  if (challengee == NULL)
                   {
                      send_message_to_client(client, error);
+                     break;
+                  }
+
+                  if (challenge(client, challengee, challenges, &actual_challenge) == 1)
+                  {
+                     games[actual_game] = init_game(client, challengee);
+                     actual_game++;
                   }
                }
                else if (strcmp(command, "decline_challenge") == 0 || strcmp(command, "dc") == 0)
                {
-                  char *target = strtok_r(NULL, " ", &remainder);
                   char error[BUF_SIZE - 1];
-                  Client *challengee = find_client_by_name(clients, actual, target, error);
-                  if (challengee != NULL)
+
+                  char *target = strtok_r(NULL, " ", &remainder);
+                  if (target == NULL)
                   {
-                     decline_challenge(client, challengee, challenges, &actual_challenge);
+                     snprintf(error, BUF_SIZE - 1, "%sError: you must specify a player whose challenge you want to decline.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
                   }
-                  else
+
+                  Client *challengee = find_client_by_name(clients, actual, target, error);
+                  if (challengee == NULL)
                   {
                      send_message_to_client(client, error);
+                     break;
                   }
+
+                  decline_challenge(client, challengee, challenges, &actual_challenge);
                }
                else if (strcmp(command, "play") == 0 || strcmp(command, "p") == 0)
                {
                   char *move = strtok_r(NULL, " ", &remainder);
                   int play_result = play(client, move);
-                  if (play_result != -1)
-                  {
-                     Game *game = client->game;
-                     char error[BUF_SIZE - 1];
-                     unsigned char other_player = (game->players[0].name == client->name);
-                     Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
 
-                     if (play_result == 0)
-                     {
-                        send_game_state_to_client(client, game);
-                        send_game_state_to_client(opponent, game);
-                     }
-                     else if (play_result == 1)
-                     {
-                        client->game = NULL;
-                        send_game_end_to_client(client, game);
-                        opponent->game = NULL;
-                        send_game_end_to_client(opponent, game);
-                     }
+                  if (play_result == -1)
+                     break;
+
+                  Game *game = client->game;
+                  char error[BUF_SIZE - 1];
+                  unsigned char other_player = (game->players[0].name == client->name);
+                  Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
+
+                  if (play_result == 0)
+                  {
+                     send_game_state_to_client(client, game);
+                     send_game_state_to_client(opponent, game);
+                  }
+                  else if (play_result == 1)
+                  {
+                     end_game(client, opponent);
                   }
                }
                else if (strcmp(command, "forfeit") == 0 || strcmp(command, "ff") == 0)
                {
-                  Game *game = client->game;
-                  if (game != NULL)
-                  {
-                     char error[BUF_SIZE - 1];
-                     unsigned char other_player = game->players[0].name == client->name;
-                     Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
-                     game->winner = other_player + 2;
-                     client->game = NULL;
-                     send_game_end_to_client(client, game);
-                     opponent->game = NULL;
-                     send_game_end_to_client(opponent, game);
-                  }
+                  forfeit(client, clients, actual, 0);
                }
                else if (strcmp(command, "online") == 0 || strcmp(command, "o") == 0)
                {
@@ -229,7 +247,7 @@ void app(void)
                   char message[BUF_SIZE - 1];
                   char truncated_command[BUF_SIZE - 47];
                   strncpy(truncated_command, command, BUF_SIZE - 47);
-                  snprintf(message, BUF_SIZE, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
+                  snprintf(message, BUF_SIZE - 1, "%sError: no command named %s%s%s !%s", ERROR_COLOR, BYELLOW, truncated_command, ERROR_COLOR, RESET);
                   send_message_to_client(client, message);
                }
                break;

@@ -117,7 +117,7 @@ int decline_challenge(Client *challenger, Client *challengee, Challenge *challen
       }
    }
 
-   snprintf(message, BUF_SIZE - 1, "%sError: You did not challenge %s%s%s. You can do it using the %schallenge%s command.%s", ERROR_COLOR, OPPONENT_COLOR, challengee->name, ERROR_COLOR, INFORMATION_COLOR, ERROR_COLOR, RESET);
+   snprintf(message, BUF_SIZE - 1, "%sError: You did not challenge %s%s%s or they did not challenge you. You can do that using the %schallenge%s command.%s", ERROR_COLOR, OPPONENT_COLOR, challengee->name, ERROR_COLOR, INFORMATION_COLOR, ERROR_COLOR, RESET);
    send_message_to_client(challenger, message);
 
    return -1;
