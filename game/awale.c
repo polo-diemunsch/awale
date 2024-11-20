@@ -5,7 +5,7 @@
 #include <time.h>
 
 #include "awale.h"
-#include "../communication/communication.h"
+#include "../serialization/serialization.h"
 #include "../lib/console.h"
 
 #define FALSE 0

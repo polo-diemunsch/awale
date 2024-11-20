@@ -7,7 +7,7 @@
 
 #include "client.h"
 #include "display.h"
-#include "../communication/communication.h"
+#include "../serialization/serialization.h"
 #include "../game/awale.h"
 #include "../lib/math.h"
 #include "../lib/console.h"

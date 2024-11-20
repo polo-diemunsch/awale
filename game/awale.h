@@ -1,5 +1,5 @@
-#ifndef GAME_H
-#define GAME_H
+#ifndef AWALE_H
+#define AWALE_H
 
 #define BOARD_SIZE 12
 

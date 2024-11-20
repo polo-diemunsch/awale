@@ -2,7 +2,7 @@
 #include <stdlib.h>
 #include <arpa/inet.h>
 
-#include "communication.h"
+#include "serialization.h"
 
 size_t write_string_to_buffer(const char *string, char *buffer)
 {

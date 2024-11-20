@@ -36,4 +36,6 @@
 #define ERROR_COLOR       RED
 #define INFORMATION_COLOR BYELLOW
 
+#define FRIENDS "\033[36mhttps://www.santemagazine.fr/psycho-sexo/psycho/10-facons-de-se-faire-des-amis-178690\033[0m"
+
 #endif /* guard */

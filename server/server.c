@@ -4,8 +4,9 @@
 #include <string.h>
 
 #include "server.h"
-#include "client.h"
-#include "commands.h"
+#include "game/game.h"
+#include "communication/communication.h"
+#include "challenge/challenge.h"
 #include "../lib/console.h"
 
 void init(void)
@@ -32,18 +33,17 @@ void app(void)
 {
    SOCKET sock = init_connection();
    char buffer[BUF_SIZE];
+
    /* the index for the array */
    int actual = 0;
    int max = sock;
    /* an array for all clients */
    Client clients[MAX_CLIENTS];
+
+   /* the index for the array */
+   int actual_challenge = 0;
    /* an array for all challenges */
    Challenge challenges[MAX_CLIENTS * MAX_CLIENTS];
-   for (int i = 0; i < MAX_CLIENTS * MAX_CLIENTS; i++)
-   {
-      challenges[i].challenger = NULL;
-      challenges[i].challengee = NULL;
-   }
 
    fd_set rdfs;
 
@@ -109,9 +109,6 @@ void app(void)
          char message[BUF_SIZE - 1];
          snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
          send_message_to_client(&c, message);
-
-         // Game *game = create_game(c.name, "Bob", 0);
-         // send_game_init_to_client(c, game, 0);
       }
       else
       {
@@ -153,8 +150,22 @@ void app(void)
                   Client *challengee = find_client_by_name(clients, actual, target, error);
                   if (challengee != NULL)
                   {
-                     if (challenge(client, challengee, &challenges) == 1)
+                     if (challenge(client, challengee, challenges, &actual_challenge) == 1)
                         init_game(client, challengee);
+                  }
+                  else
+                  {
+                     send_message_to_client(client, error);
+                  }
+               }
+               else if (strcmp(command, "decline_challenge") == 0 || strcmp(command, "dc") == 0)
+               {
+                  char *target = strtok_r(NULL, " ", &remainder);
+                  char error[BUF_SIZE - 1];
+                  Client *challengee = find_client_by_name(clients, actual, target, error);
+                  if (challengee != NULL)
+                  {
+                     decline_challenge(client, challengee, challenges, &actual_challenge);
                   }
                   else
                   {
@@ -193,7 +204,6 @@ void app(void)
                   {
                      char error[BUF_SIZE - 1];
                      unsigned char other_player = game->players[0].name == client->name;
-                     printf("%u\n", other_player);
                      Client *opponent = find_client_by_name(clients, actual, game->players[other_player].name, error);
                      game->winner = other_player + 2;
                      client->game = NULL;
@@ -205,13 +215,12 @@ void app(void)
                else if (strcmp(command, "online") == 0 || strcmp(command, "o") == 0)
                {
                   char message[BUF_SIZE - 1], *put = message;
-                  snprintf(put,sizeof message-(put-message), "Online players: \n");
-                  put+=16;
-                  for(int i=0;i<=actual;++i){
-                     if (i>0 ){
-                        put+=snprintf(put, sizeof message-(put-message), " - "); 
-                     }
-                     put+=snprintf(put, sizeof message-(put-message), clients[i].name); 
+                  snprintf(put, BUF_SIZE - 1 - (put - message), "Online players: ");
+                  put += 16;
+                  for(int i = 0; i < actual; ++i){
+                     if (i > 0)
+                        put += snprintf(put, BUF_SIZE - 1 - (put - message), " - "); 
+                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "%s%s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name, RESET); 
                   }
                   send_message_to_client(client, message);
                }
@@ -231,95 +240,6 @@ void app(void)
 
    clear_clients(clients, actual);
    end_connection(sock);
-}
-
-Client *find_client_by_name(Client *clients, int actual, const char *name, char *error)
-{
-   int i;
-   for (i = 0; i < actual; i++)
-   {
-      if (strcmp(name, clients[i].name) == 0)
-         return &clients[i];
-   }
-
-   char player_name[BUF_SIZE - 47];
-   strncpy(player_name, name, BUF_SIZE - 47);
-   snprintf(error, BUF_SIZE - 1, "%sError: player %s%s%s not found%s", ERROR_COLOR, OPPONENT_COLOR, player_name, ERROR_COLOR, RESET);
-   return NULL;
-}
-
-void clear_clients(Client *clients, int actual)
-{
-   int i = 0;
-   for(i = 0; i < actual; i++)
-   {
-      closesocket(clients[i].sock);
-   }
-}
-
-void remove_client(Client *clients, int to_remove, int *actual)
-{
-   /* we remove the client in the array */
-   memmove(clients + to_remove, clients + to_remove + 1, (*actual - to_remove - 1) * sizeof(Client));
-   /* number client - 1 */
-   (*actual)--;
-}
-
-void send_game_init_to_client(Client *receiver, Game *game, unsigned char which_player_is_it)
-{
-   char buffer[BUF_SIZE];
-   *buffer = GAME_INIT;
-   size_t n = serialize_game(game, which_player_is_it, buffer + 1);
-   write_client(receiver->sock, buffer, n + 1);
-}
-
-void send_game_state_to_client(Client *receiver, Game *game)
-{
-   char buffer[BUF_SIZE];
-   *buffer = GAME_STATE;
-   size_t n = serialize_game_state(game, buffer + 1);
-   write_client(receiver->sock, buffer, n + 1);
-}
-
-void send_game_end_to_client(Client *receiver, Game *game)
-{
-   char buffer[BUF_SIZE];
-   *buffer = GAME_END;
-   char message[BUF_SIZE - 1];
-
-   unsigned char player = (game->players[1].name == receiver->name);
-   unsigned char opponent = (player + 1) % 2;
-   
-   if (game->winner == player)
-      snprintf(message, BUF_SIZE - 1, "%sYou won against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
-   else if (game->winner == opponent)
-      snprintf(message, BUF_SIZE - 1, "%sYou lost against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
-   else if (game->winner == player + 2)
-      snprintf(message, BUF_SIZE - 1, "%sYou won by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
-   else if (game->winner == opponent + 2)
-      snprintf(message, BUF_SIZE - 1, "%sYou lost by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
-   else
-      snprintf(message, BUF_SIZE - 1, "%sThe game against %s%s%s ends in a draw (%u - %u).%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
-
-   size_t n = write_string_to_buffer(message, buffer + 1);
-   write_client(receiver->sock, buffer, n + 1);
-}
-
-void send_message_to_client(Client *receiver, char *message)
-{
-   char buffer[BUF_SIZE];
-   *buffer = MESSAGE;
-   size_t n = write_string_to_buffer(message, buffer + 1);
-   write_client(receiver->sock, buffer, n + 1);
-}
-
-void init_game(Client *player0, Client *player1)
-{
-   Game *game = create_game(player0->name, player1->name, 0);
-   player0->game = game;
-   player1->game = game;
-   send_game_init_to_client(player0, game, 0);
-   send_game_init_to_client(player1, game, 1);
 }
 
 int init_connection(void)
@@ -355,31 +275,6 @@ int init_connection(void)
 void end_connection(int sock)
 {
    closesocket(sock);
-}
-
-int read_client(SOCKET sock, char *buffer)
-{
-   int n = 0;
-
-   if((n = recv(sock, buffer, BUF_SIZE - 1, 0)) < 0)
-   {
-      perror("recv()");
-      /* if recv error we disonnect the client */
-      n = 0;
-   }
-
-   buffer[n] = 0;
-
-   return n;
-}
-
-void write_client(SOCKET sock, const char *buffer, size_t n)
-{
-   if(send(sock, buffer, n, 0) < 0)
-   {
-      perror("send()");
-      exit(errno);
-   }
 }
 
 int main(int argc, char **argv)

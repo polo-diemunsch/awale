@@ -3,7 +3,7 @@
 
 #include <sys/ioctl.h>
 
-#include "../communication/communication.h"
+#include "../serialization/serialization.h"
 
 #define VERTICAL_PADDING     1
 #define HORIZONTAL_PADDING   (2 * VERTICAL_PADDING)
