@@ -120,8 +120,12 @@ void display_menu(Position position)
     printf("                  watch the replay of a game\n");
 
     move_cursor_right(first_column);
-    color_printf("next ", BYELLOW);
-    printf("                        display next move\n");
+    color_printf("next", BYELLOW);
+    printf("                         display next move\n");
+
+    move_cursor_right(first_column);
+    color_printf("home", BYELLOW);
+    printf("                         stop spectating / replaying a game\n");
 }
 
 void display_game(Position position, Game *game, unsigned char who_am_i)

@@ -114,8 +114,18 @@ static void app(const char *address, const char *name)
                buffer[BUF_SIZE - 1] = 0;
             }
          }
-         if (strcmp(buffer, "exit") == 0)
+         if (strcmp(buffer, "exit") == 0 || strcmp(buffer, "e") == 0)
+         {
             break;
+         }
+         else if (strcmp(buffer, "home") == 0 || strcmp(buffer, "h") == 0)
+         {
+            if (game != NULL)
+            {
+               free(game);
+               game = NULL;
+            }
+         }
          write_server(sock, buffer);
       }
       /* something from server */

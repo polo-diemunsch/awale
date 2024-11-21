@@ -265,6 +265,10 @@ void app(void)
                {
                   forfeit(client, clients, actual, games_playing, &actual_games_playing, 0);
                }
+               else if (strcmp(command, "home") == 0 || strcmp(command, "h") == 0)
+               {
+                  client->spectating = NULL;
+               }
                else
                {
                   char message[BUF_SIZE - 1];

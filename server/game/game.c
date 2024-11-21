@@ -101,8 +101,8 @@ void forfeit(Client *client, Client *clients, int actual, Game **games_playing, 
       else
       {
          remove_spectators(game, clients, actual);
-         remove_game(games_playing, opponent->game, actual_games_playing);
-         send_game_end_to_client(opponent, opponent->game);
+         remove_game(games_playing, game, actual_games_playing);
+         send_game_end_to_client(opponent, game);
          opponent->game = NULL;
       }
    }
