@@ -29,6 +29,15 @@ void end(void)
 #endif
 }
 
+void wait(int seconds)
+{   
+    #ifdef _WIN32
+        Sleep( 1000 * seconds );
+    #else
+        sleep( seconds );
+    #endif
+}
+
 void app(void)
 {
    SOCKET sock = init_connection();
@@ -103,20 +112,36 @@ void app(void)
          /* what is the new maximum fd ? */
          max = csock > max ? csock : max;
 
-         FD_SET(csock, &rdfs);
 
          Client c = { csock };
          strncpy(c.name, buffer, NAME_SIZE);
          c.game = NULL;
-         clients[actual] = c;
-         actual++;
-
+         
          char message[BUF_SIZE - 1];
-         snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
-         send_message_to_client(&c, message);
-      }
-      else
-      {
+
+         //authentication
+         FILE * fd;
+         char * filename = malloc(strlen(c.name)+7);
+         snprintf(filename,strlen(c.name)+8,"./data/%s",c.name);
+         fd=fopen(filename,"r");
+         if(fd==NULL){ 
+            printf("bad pseudo");
+            snprintf(message, BUF_SIZE, "You don't have an account! Bye");
+            send_message_to_client(&c, message);
+            wait(2);
+            end_connection(csock);
+         } else {
+            FD_SET(csock, &rdfs);
+            clients[actual] = c;
+            actual++;
+            snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+            send_message_to_client(&c, message);
+         }
+         free(filename);
+
+         // Game *game = create_game(c.name, "Bob", 0);
+         // send_game_init_to_client(c, game, 0);
+      } else {
          int i = 0;
          for(i = 0; i < actual; i++)
          {
