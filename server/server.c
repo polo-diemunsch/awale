@@ -46,9 +46,9 @@ void app(void)
    Challenge challenges[MAX_CLIENTS * MAX_CLIENTS];
 
    /* the index for the array */
-   int actual_game = 0;
-   /* an array for all games */
-   Game *games[MAX_CLIENTS * MAX_CLIENTS * MAX_CLIENTS];
+   int actual_games_playing = 0;
+   /* an array for all games playing */
+   Game *games_playing[MAX_CLIENTS * MAX_CLIENTS];
 
    fd_set rdfs;
 
@@ -129,7 +129,7 @@ void app(void)
                if(c == 0)
                {
                   closesocket(clients[i].sock);
-                  remove_client(clients, i, &actual);
+                  remove_client(clients, i, &actual, games_playing, &actual_games_playing);
                   // strncpy(buffer, client.name, BUF_SIZE - 1);
                   // strncat(buffer, " disconnected !", BUF_SIZE - strlen(buffer) - 1);
                   // send_message_to_all_clients(clients, client, actual, buffer, 1);
@@ -143,7 +143,17 @@ void app(void)
 
                command = strtok_r(buffer_copy, " ", &remainder);
 
-               if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
+               if (strcmp(command, "online") == 0 || strcmp(command, "o") == 0)
+               {
+                  char message[BUF_SIZE - 1], *put = message;
+                  put += snprintf(put, BUF_SIZE - 1 - (put - message), "Online players:                                                      ");
+                  for(int i = 0; i < actual; ++i)
+                  {
+                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "- %s%-67s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name, RESET); 
+                  }
+                  send_message_to_client(client, message);
+               }
+               else if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
                {
                   char error[BUF_SIZE - 1];
 
@@ -178,8 +188,8 @@ void app(void)
 
                   if (challenge(client, challengee, challenges, &actual_challenge) == 1)
                   {
-                     games[actual_game] = init_game(client, challengee);
-                     actual_game++;
+                     games_playing[actual_games_playing] = init_game(client, challengee);
+                     actual_games_playing++;
                   }
                }
                else if (strcmp(command, "decline_challenge") == 0 || strcmp(command, "dc") == 0)
@@ -203,6 +213,30 @@ void app(void)
 
                   decline_challenge(client, challengee, challenges, &actual_challenge);
                }
+               else if (strcmp(command, "list_games") == 0 || strcmp(command, "lg") == 0)
+               {
+                  char message[BUF_SIZE - 1], *put = message;
+                  put += snprintf(put, BUF_SIZE - 1 - (put - message), "Current games:                                                       ");;
+                  for(int i = 0; i < actual_games_playing; ++i)
+                  {
+                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "- %s%-67s%s", client->game == games_playing[i] ? OWN_COLOR : OPPONENT_COLOR, games_playing[i]->name, RESET); 
+                  }
+                  send_message_to_client(client, message);
+               }
+               else if (strcmp(command, "spectate") == 0 || strcmp(command, "sp") == 0)
+               {
+                  char error[BUF_SIZE - 1];
+
+                  char *target = strtok_r(NULL, " ", &remainder);
+                  if (target == NULL)
+                  {
+                     snprintf(error, BUF_SIZE - 1, "%sError: you must specify a player or a game you want to spectate.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
+                  }
+
+                  spectate(client, clients, actual, games_playing, actual_games_playing, target);
+               }
                else if (strcmp(command, "play") == 0 || strcmp(command, "p") == 0)
                {
                   char *move = strtok_r(NULL, " ", &remainder);
@@ -218,29 +252,18 @@ void app(void)
 
                   if (play_result == 0)
                   {
+                     send_game_state_to_spectators(clients, actual, game);
                      send_game_state_to_client(client, game);
                      send_game_state_to_client(opponent, game);
                   }
                   else if (play_result == 1)
                   {
-                     end_game(client, opponent);
+                     end_game(client, opponent, clients, actual, games_playing, &actual_games_playing);
                   }
                }
                else if (strcmp(command, "forfeit") == 0 || strcmp(command, "ff") == 0)
                {
-                  forfeit(client, clients, actual, 0);
-               }
-               else if (strcmp(command, "online") == 0 || strcmp(command, "o") == 0)
-               {
-                  char message[BUF_SIZE - 1], *put = message;
-                  snprintf(put, BUF_SIZE - 1 - (put - message), "Online players: ");
-                  put += 16;
-                  for(int i = 0; i < actual; ++i){
-                     if (i > 0)
-                        put += snprintf(put, BUF_SIZE - 1 - (put - message), " - "); 
-                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "%s%s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name, RESET); 
-                  }
-                  send_message_to_client(client, message);
+                  forfeit(client, clients, actual, games_playing, &actual_games_playing, 0);
                }
                else
                {

@@ -140,13 +140,12 @@ static void app(const char *address, const char *name)
                break;
 
             case GAME_INIT:
-               if (game == NULL)
-               {
-                  game = malloc(sizeof(Game));
-                  game->players[0].name = NULL;
-                  game->players[1].name = NULL;
-                  who_am_i = unserialize_game(game, buffer + 1);
-               }
+               if (game != NULL)
+                  free(game);
+               game = malloc(sizeof(Game));
+               game->players[0].name = NULL;
+               game->players[1].name = NULL;
+               who_am_i = unserialize_game(game, buffer + 1);
                break;
 
             case GAME_STATE:

@@ -8,10 +8,11 @@ typedef struct {
    SOCKET sock;
    char name[NAME_SIZE];
    Game *game;
+   Game *spectating;
 } Client;
 
 Client *find_client_by_name(Client *clients, int actual, const char *name, char *error);
-void remove_client(Client *clients, int to_remove, int *actual);
+void remove_client(Client *clients, int to_remove, int *actual, Game **games_playing, int *actual_games_playing);
 void clear_clients(Client *clients, int actual);
 
 #endif /* guard */

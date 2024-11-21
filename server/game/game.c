@@ -10,12 +10,29 @@ Game *init_game(Client *player0, Client *player1)
    Game *game = create_game(player0->name, player1->name, 0);
 
    player0->game = game;
+   player0->spectating = NULL;
    player1->game = game;
+   player1->spectating = NULL;
 
    send_game_init_to_client(player0, game, 0);
    send_game_init_to_client(player1, game, 1);
 
    return game;
+}
+
+Game *find_game_by_name(Game **games, int actual, const char *name, char *error)
+{
+   int i;
+   for (i = 0; i < actual; i++)
+   {
+      if (strcmp(name, games[i]->name) == 0)
+         return games[i];
+   }
+
+   char game_name[BUF_SIZE - 43];
+   strncpy(game_name, name, BUF_SIZE - 43);
+   snprintf(error, BUF_SIZE - 1, "%sError: game %s%s%s not found.%s", ERROR_COLOR, INFORMATION_COLOR, game_name, ERROR_COLOR, RESET);
+   return NULL;
 }
 
 int play(Client *client, char *move)
@@ -68,7 +85,7 @@ int play(Client *client, char *move)
    return round_result;
 }
 
-void forfeit(Client *client, Client *clients, int actual, int disconnected)
+void forfeit(Client *client, Client *clients, int actual, Game **games_playing, int *actual_games_playing, int disconnected)
 {
    Game *game = client->game;
    if (game != NULL)
@@ -79,20 +96,97 @@ void forfeit(Client *client, Client *clients, int actual, int disconnected)
       game->winner = other_player + 2;
       if (!disconnected)
       {
-         end_game(client, opponent);
+         end_game(client, opponent, clients, actual, games_playing, actual_games_playing);
       }
       else
       {
+         remove_spectators(game, clients, actual);
+         remove_game(games_playing, opponent->game, actual_games_playing);
          send_game_end_to_client(opponent, opponent->game);
          opponent->game = NULL;
       }
    }
 }
 
-void end_game(Client *player0, Client *player1)
+void end_game(Client *player0, Client *player1, Client *clients, int actual, Game **games_playing, int *actual_games_playing)
 {
-   send_game_end_to_client(player0, player0->game);
+   Game *game = player0->game;
+
+   remove_spectators(game, clients, actual);
+   remove_game(games_playing, game, actual_games_playing);
+
+   send_game_end_to_client(player0, game);
    player0->game = NULL;
-   send_game_end_to_client(player1, player1->game);
+   send_game_end_to_client(player1, game);
    player1->game = NULL;
+}
+
+void remove_spectators(Game *game, Client *clients, int actual)
+{
+   int i;
+   for (i = 0; i < actual; i++)
+   {
+      if (clients[i].spectating == game)
+      {
+         send_game_end_to_client(&clients[i], game);
+         clients[i].spectating = NULL;
+      }
+   }
+}
+
+void remove_game(Game **games, Game *game_to_remove, int *actual)
+{
+   int to_remove;
+   for (to_remove = 0; to_remove < *actual; to_remove++)
+   {
+      if (games[to_remove] == game_to_remove)
+         break;
+   }
+   if (to_remove < *actual)
+   {
+      /* we remove the client in the array */
+      memmove(games + to_remove, games + to_remove + 1, (*actual - to_remove - 1) * sizeof(Game));
+      /* number client - 1 */
+      (*actual)--;
+   }
+}
+
+int spectate(Client *client, Client *clients, int actual, Game **games_playing, int actual_games_playing, const char *target)
+{
+   char error[BUF_SIZE - 1];
+   Game *game = NULL;
+
+   if (client->game != NULL)
+   {
+      snprintf(error, BUF_SIZE - 1, "%sError: you can't spectate a game when you are already playing.%s", ERROR_COLOR, RESET);
+      send_message_to_client(client, error);
+      return -1;
+   }
+
+   Client *target_client = find_client_by_name(clients, actual, target, error);
+   if (target_client != NULL)
+   {
+      if (target_client->game == NULL)
+      {
+         snprintf(error, BUF_SIZE - 1, "%sError: %s%s%s is not currently playing.%s", ERROR_COLOR, OPPONENT_COLOR, target_client->name, ERROR_COLOR, RESET);
+         send_message_to_client(client, error);
+         return -1;
+      }
+      game = target_client->game;
+   }
+   else
+   {
+      game = find_game_by_name(games_playing, actual_games_playing, target, error);
+   }
+
+   if (game == NULL)
+   {
+      snprintf(error, BUF_SIZE - 1, "%sError: player or game %s%s%s not found.%s", ERROR_COLOR, OPPONENT_COLOR, target, ERROR_COLOR, RESET);
+      send_message_to_client(client, error);
+      return -1;
+   }
+
+   client->spectating = game;
+   send_game_init_to_client(client, game, 2);
+   return 0;
 }

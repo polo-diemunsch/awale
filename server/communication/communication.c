@@ -46,25 +46,42 @@ void send_game_state_to_client(Client *receiver, Game *game)
    write_client(receiver->sock, buffer, n + 1);
 }
 
+void send_game_state_to_spectators(Client *clients, int actual, Game *game)
+{
+   int i;
+   for (i = 0; i < actual; i++)
+   {
+      if (clients[i].spectating == game)
+         send_game_state_to_client(&clients[i], game);
+   }
+}
+
 void send_game_end_to_client(Client *receiver, Game *game)
 {
    char buffer[BUF_SIZE];
    *buffer = GAME_END;
    char message[BUF_SIZE - 1];
 
-   unsigned char player = (game->players[1].name == receiver->name);
+   unsigned char is_not_spectator = game->players[0].name == receiver->name || game->players[1].name == receiver->name;
+
+   Player winner = game->players[game->winner % 2];
+   Player looser = game->players[(game->winner + 1) % 2];
+
+   unsigned char player = is_not_spectator ? (game->players[1].name == receiver->name) : game->winner % 2;
    unsigned char opponent = (player + 1) % 2;
-   
+
+   char *self = is_not_spectator ? "You" : winner.name;
+
    if (game->winner == player)
-      snprintf(message, BUF_SIZE - 1, "%sYou won against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+      snprintf(message, BUF_SIZE - 1, "%s%s%s won against %s%s%s (%u - %u)!%s", OWN_COLOR, self, INFORMATION_COLOR, OPPONENT_COLOR, looser.name, INFORMATION_COLOR, winner.score, looser.score, RESET);
    else if (game->winner == opponent)
-      snprintf(message, BUF_SIZE - 1, "%sYou lost against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+      snprintf(message, BUF_SIZE - 1, "%s%s%s lost against %s%s%s (%u - %u)!%s", OWN_COLOR, self, INFORMATION_COLOR, OPPONENT_COLOR, winner.name, INFORMATION_COLOR, looser.score, winner.score, RESET);
    else if (game->winner == player + 2)
-      snprintf(message, BUF_SIZE - 1, "%sYou won by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+      snprintf(message, BUF_SIZE - 1, "%s%s%s won by forfeit against %s%s%s (%u - %u)!%s", OWN_COLOR, self, INFORMATION_COLOR, OPPONENT_COLOR, looser.name, INFORMATION_COLOR, winner.score, looser.score, RESET);
    else if (game->winner == opponent + 2)
-      snprintf(message, BUF_SIZE - 1, "%sYou lost by forfeit against %s%s%s (%u - %u)!%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+      snprintf(message, BUF_SIZE - 1, "%s%s%s lost by forfeit against %s%s%s (%u - %u)!%s", OWN_COLOR, self, INFORMATION_COLOR, OPPONENT_COLOR, winner.name, INFORMATION_COLOR, looser.score, winner.score, RESET);
    else
-      snprintf(message, BUF_SIZE - 1, "%sThe game against %s%s%s ends in a draw (%u - %u).%s", INFORMATION_COLOR, OPPONENT_COLOR, game->players[opponent].name, INFORMATION_COLOR, game->players[player].score, game->players[opponent].score, RESET);
+      snprintf(message, BUF_SIZE - 1, "%sThe game ends in a draw (%u - %u).%s", INFORMATION_COLOR, winner.score, looser.score, RESET);
 
    size_t n = write_string_to_buffer(message, buffer + 1);
    write_client(receiver->sock, buffer, n + 1);

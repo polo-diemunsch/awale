@@ -60,8 +60,7 @@ void display_menu(Position position)
 {
     unsigned short first_column = (position.width - MENU_AND_GAME_WIDTH) / 2 + HORIZONTAL_PADDING;
 
-    move_cursor_to(1 + (position.width - 7) / 2, position.y + VERTICAL_PADDING);
-    color_printf("GENERAL\n", BWHITE);
+    move_cursor_to(1, position.y + VERTICAL_PADDING);
 
     move_cursor_right(first_column);
     color_printf("online ", BYELLOW);
@@ -89,6 +88,27 @@ void display_menu(Position position)
     printf("                             cancel a challenge sent to a player\n");
 
     move_cursor_right(first_column);
+    color_printf("play ", BYELLOW);
+    color_printf("slot", BGREEN);
+    printf("                    choose which slot to play\n");
+
+    move_cursor_right(first_column);
+    color_printf("forfeit", BYELLOW);
+    printf("                      forfeit the game\n");
+
+    move_cursor_right(first_column);
+    color_printf("list_games", BYELLOW);
+    printf("                   list games currently playing\n");
+
+    move_cursor_right(first_column);
+    color_printf("spectate ", BYELLOW);
+    printf("[");
+    color_printf("player", BBLUE);
+    printf("|");
+    color_printf("game", BCYAN);
+    printf("]       spectate a player or a game\n");
+
+    move_cursor_right(first_column);
     color_printf("historic ", BYELLOW);
     printf("(");
     color_printf("n", BCYAN);
@@ -99,21 +119,6 @@ void display_menu(Position position)
     color_printf("game", BCYAN);
     printf("                  watch the replay of a game\n");
 
-    move_cursor_right((position.width - 7) / 2);
-    color_printf("IN GAME\n", BWHITE);
-
-    move_cursor_right(first_column);
-    color_printf("play ", BYELLOW);
-    color_printf("slot", BGREEN);
-    printf("                    choose which slot to play\n");
-
-    move_cursor_right(first_column);
-    color_printf("forfeit", BYELLOW);
-    printf("                      forfeit the game\n");
-
-    move_cursor_right((position.width - 6) / 2);
-    color_printf("REPLAY\n", BWHITE);
-
     move_cursor_right(first_column);
     color_printf("next ", BYELLOW);
     printf("                        display next move\n");
@@ -121,7 +126,9 @@ void display_menu(Position position)
 
 void display_game(Position position, Game *game, unsigned char who_am_i)
 {
-    unsigned char other_player = (who_am_i + 1) % 2;
+    unsigned char am_i_playing = who_am_i < 2;
+    unsigned char bottom_player = am_i_playing ? who_am_i : 0;
+    unsigned char top_player = (bottom_player + 1) % 2;
 
     int start_index, offset;
 
@@ -131,7 +138,10 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
 
     sprintf(display_string, "Turn %d - ", game->round);
     char who_is_playing[MENU_AND_GAME_WIDTH + 1];
-    strcpy(who_is_playing, is_my_turn ? "Your time to play" : "Waiting for opponent to play");
+    if (is_my_turn)
+        strcpy(who_is_playing, "Your time to play");
+    else
+        sprintf(who_is_playing, "Waiting for %s to play", game->players[game->turn].name);
 
     move_cursor_to((int) (1 + (position.width - strlen(display_string) - strlen(who_is_playing)) / 2), position.y + VERTICAL_PADDING + 1);
     printf("%s", display_string);
@@ -139,21 +149,23 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
     printf("\n\n\n");
 
     char opponent[] = " (Opponent)";
-    offset = strlen(opponent);
-    truncate_name(display_string, game->players[other_player].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
+    offset = am_i_playing ? strlen(opponent) : 0;
+    truncate_name(display_string, game->players[top_player].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
     move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
     color_printf(display_string, OPPONENT_COLOR);
-    printf("%s\n\n", opponent);
+    if (am_i_playing)
+        printf("%s", opponent);
+    printf("\n\n");
 
     unsigned short board_left_column = (position.width - BOARD_WIDTH) / 2;
 
     move_cursor_right(board_left_column);
     printf("╭────┬────┬────┬────┬────┬────╮\n");
 
-    sprintf(display_string, "%2d   ", game->players[other_player].score);
+    sprintf(display_string, "%2d   ", game->players[top_player].score);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
     color_printf(display_string, OPPONENT_COLOR);
-    start_index = (who_am_i == 0 ? BOARD_SIZE : BOARD_SIZE / 2) - 1;
+    start_index = (bottom_player == 0 ? BOARD_SIZE : BOARD_SIZE / 2) - 1;
     for (int i = start_index; i >= start_index - BOARD_SIZE / 2 + 1; i--)
         printf("│ %2d ", game->board[i]);
     printf("│");
@@ -163,10 +175,10 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
     printf("├────┼────┼────┼────┼────┼────┤");
     color_printf("    │\n", BBLACK);
 
-    sprintf(display_string, "%2d   ", game->players[who_am_i].score);
+    sprintf(display_string, "%2d   ", game->players[bottom_player].score);
     move_cursor_right((int)(board_left_column - strlen(display_string)));
     color_printf(display_string, OWN_COLOR);
-    start_index = (who_am_i == 0 ? 0 : BOARD_SIZE / 2);
+    start_index = (bottom_player == 0 ? 0 : BOARD_SIZE / 2);
     for (int i = start_index; i < start_index + BOARD_SIZE / 2; i++)
         printf("│ %2d ", game->board[i]);
     printf("│");
@@ -179,11 +191,13 @@ void display_game(Position position, Game *game, unsigned char who_am_i)
     color_printf("  a    b    c    d    e    f\n\n", BBLACK);
 
     char you[] = " (You)";
-    offset = strlen(you);
-    truncate_name(display_string, game->players[who_am_i].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
+    offset = am_i_playing ? strlen(you) : 0;
+    truncate_name(display_string, game->players[bottom_player].name, MENU_AND_GAME_WIDTH - 2 * HORIZONTAL_PADDING - offset);
     move_cursor_right((int)(position.width - get_visual_length(display_string) - offset) / 2);
     color_printf(display_string, OWN_COLOR);
-    printf("%s\n\n", you);
+    if (am_i_playing)
+        printf("%s", you);
+    printf("\n\n");
 }
 
 void display_chat(Position position, Messages *messages)

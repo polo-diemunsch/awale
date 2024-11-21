@@ -9,6 +9,7 @@ int read_client(SOCKET sock, char *buffer);
 void write_client(SOCKET sock, const char *buffer, size_t n);
 void send_game_init_to_client(Client *receiver, Game *game, unsigned char which_player_is_it);
 void send_game_state_to_client(Client *receiver, Game *game);
+void send_game_state_to_spectators(Client *clients, int actual, Game *game);
 void send_game_end_to_client(Client *receiver, Game *game);
 void send_message_to_client(Client *receiver, char *buffer);
 
