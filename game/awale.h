@@ -31,6 +31,7 @@ unsigned char is_starving_move(Game *game, unsigned char player, unsigned char c
 unsigned char exists_move_to_feed(Game *game, unsigned char player);
 Game *create_game(char *player0_name, char *player1_name, unsigned char direction);
 int execute_round(Game *game, unsigned char player, unsigned char slot, char *error);
+int execute_round_replay(Game *game, unsigned char slot);
 void print_game(Game *game);
 
 #endif 

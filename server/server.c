@@ -147,7 +147,7 @@ void app(void)
             end_connection(csock);
          } else {
             char pswd[PASSWORD_SIZE]; 
-            if (fgets(pswd, BUF_SIZE, fd) != NULL) { 
+            if (fgets(pswd, PASSWORD_SIZE, fd) != NULL) { 
             // Remove the trailing newline character if present
                pswd[strcspn(pswd, "\n")] = '\0';
             }
@@ -203,6 +203,70 @@ void app(void)
                      put += snprintf(put, BUF_SIZE - 1 - (put - message), "- %s%-67s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name,RESET); 
                   }
                   send_message_to_client(client, message);
+               }
+               else if(strcmp(command,"history")==0 || strcmp(command,"h")==0) {
+                  char error[BUF_SIZE-1];
+                  FILE * f;
+                  char * filename = malloc(sizeof(client->name)+7);
+                  snprintf(filename,strlen(client->name)+8,"./data/%s",client->name);
+                  f = fopen(filename,"r");
+                  if (f == NULL){
+                     snprintf(error, BUF_SIZE - 1, "%sError: your file has not been found.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     free(filename);
+                     break;
+                  } 
+                  free(filename);
+
+                  //extract games from player's file
+                  char line[128];
+                  int is_first_line = 1;
+                  char output_buffer [BUF_SIZE];
+                  output_buffer[0] = '\0'; // Initialize output buffer
+                  int i=0;
+                  while (fgets(line, sizeof(line), f)) {
+                     if (is_first_line) {
+                           is_first_line = 0; // Skip the first line
+                           ++i;
+                           continue;
+                     }
+
+                     // Check for buffer overflow
+                     if (strlen(output_buffer) + strlen(line) + 1 > BUF_SIZE) {
+                           fprintf(stderr, "Error: Output buffer exceeded.\n");
+                           fclose(f);
+                           return;
+                     }
+                     strcat(output_buffer, line); // Append line to the output buffer
+                     ++i;
+                  }              
+                  fclose(f);
+                  send_message_to_client(client,output_buffer);
+
+               }
+               else if (strcmp(command, "replay") == 0 || strcmp(command, "r") == 0){
+                  char error[BUF_SIZE - 1];
+                  char *game_name = strtok_r(NULL, " ", &remainder);
+                  if (game_name == NULL)
+                  {
+                     snprintf(error, BUF_SIZE - 1, "%sError: you must specify a game name.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
+                  }
+                  FILE * fd;
+                  char * filename_game = malloc(sizeof(game_name)+7);
+                  snprintf(filename_game,strlen(game_name)+8,"./data/%s",game_name);
+                  fd = fopen(filename_game,"r");
+                  free(filename_game);
+                  if (fd==NULL){
+                     snprintf(error, BUF_SIZE - 1, "%sError: invalid game name.%s", ERROR_COLOR, RESET);
+                     send_message_to_client(client, error);
+                     break;
+                  }
+
+                  replay_game(fd,client);
+                  //send_message_to_client(client,message);
+
                }
                else if (strcmp(command, "send") == 0 || strcmp(command, "s") == 0)
                {

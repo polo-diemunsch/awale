@@ -232,3 +232,48 @@ int send_game(char * game_name, Client * client){
     return 0;
 }
 
+int replay_game (FILE * fd, Client * client)
+{
+   //returns -1 if error 
+   char P1 [NAME_SIZE] ;
+   char P2 [NAME_SIZE] ;
+   char direction;
+   char turn;
+   char error [BUF_SIZE];
+   char slot_str [10];
+   int slot;
+   if(fgets(P1,NAME_SIZE,fd)==NULL){
+      return -1;
+   }
+   P1[strcspn(P1, "\n")] = '\0'; // Remove newline
+   if(fgets(P2,NAME_SIZE,fd)==NULL){
+      return -1;
+   }
+   P2[strcspn(P1, "\n")] = '\0'; // Remove newline
+
+   while ((turn = fgetc(fd)) == '\n') {} // Skip newlines
+    if (turn == EOF) {
+        return -1;
+    } 
+    fgetc(fd); // Consume the newline after turn
+
+    while ((direction = fgetc(fd)) == '\n') {} // Skip newlines
+    if (direction == EOF) {
+        return -1;
+    }
+    fgetc(fd); // Consume the newline after direction
+
+
+   Game * game = create_game(P1,P2,(unsigned char)direction);
+   game->turn=(unsigned char)(turn-'0');
+    printf("turn ------------------ %u",game->turn);
+   send_game_init_to_client(client,game,0);
+   while(fgets(slot_str,10,fd)){
+      slot=atoi(slot_str);
+      execute_round_replay(game,(unsigned char)slot);
+      send_game_state_to_client(client,game);
+      print_game(game);
+   }
+   return 0;
+}
+

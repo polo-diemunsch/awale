@@ -109,7 +109,7 @@ void display_menu(Position position)
     printf("]       spectate a player or a game\n");
 
     move_cursor_right(first_column);
-    color_printf("historic ", BYELLOW);
+    color_printf("history ", BYELLOW);
     printf("(");
     color_printf("n", BCYAN);
     printf(")");
