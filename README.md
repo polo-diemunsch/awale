@@ -1,10 +1,9 @@
 # Bienvenue sur Awale
 
 # Exécution
+Pour compiler, utilisez la commande `make client server` dans un terminal, depuis le dossier awale.
 Pour exécuter le serveur, exécutez le fichier ./bin/server depuis le dossier awale en exécutant la commande `./bin/server`.
 Pour exécuter un client, exécutez le fichier ./bin/client depuis le dossier awale en exécutant la commande `./bin/client adresse_du_serveur pseudo mot_de_passe`.
-Le jeu est fourni avec les exécutables prêts. 
-Vous pouvez les recompiler en utilisant la commande `make client server` dans un terminal, depuis le dossier awale.
 Les couples pseudos/mdp disponibles sont : 
 polo mdp1
 nor mdp2
