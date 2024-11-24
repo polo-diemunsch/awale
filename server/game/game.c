@@ -1,4 +1,5 @@
 #include <string.h>
+#include <stdlib.h> 
 
 #include "game.h"
 #include "../communication/communication.h"
@@ -190,3 +191,44 @@ int spectate(Client *client, Client *clients, int actual, Game **games_playing, 
    send_game_init_to_client(client, game, 2);
    return 0;
 }
+
+int send_game(char * game_name, Client * client){
+   FILE * f;
+   f=fopen(game_name,"r");
+   if (f==NULL){
+      perror("This game does not exist.");
+   } else {
+              // Seek to the end of the file to determine its size
+        fseek(f, 0, SEEK_END);
+        long file_size = ftell(f); // Get the size of the file
+        rewind(f); // Go back to the start of the file
+
+        // Allocate memory for the file contents (+1 for the null terminator)
+        char *file_content = (char *)malloc(file_size + 1);
+        if (file_content == NULL) {
+            perror("Failed to allocate memory.");
+            fclose(f);
+            return -1;
+        }
+
+        // Read the file into the buffer
+        size_t bytes_read = fread(file_content, 1, file_size, f);
+        if (bytes_read != file_size) {
+            perror("Error reading the file.");
+            free(file_content);
+            fclose(f);
+            return -1;
+        }
+
+        file_content[file_size] = '\0'; // Null-terminate the string
+
+        // Print or process the content as needed
+        printf("File Content:\n%s\n", file_content);
+        send_message_to_client(client,file_content);
+        // Clean up
+        free(file_content);
+        fclose(f);
+   }
+    return 0;
+}
+

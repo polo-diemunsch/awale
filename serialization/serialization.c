@@ -90,28 +90,7 @@ unsigned char unserialize_game(Game *game, const char *buffer)
     return who_am_i;
 }
 
-size_t serialize_game_init_history (Game *game, char *buffer)
-{
-    size_t length = 0;
 
-    length += serialize_player(&(game->players[0]), buffer + length);
-    length += serialize_player(&(game->players[1]), buffer + length);
-
-    strncpy(buffer + length, game->board, BOARD_SIZE);
-    length += BOARD_SIZE;
-
-    int round = htons(game->round);
-    memcpy(buffer + length, &round, sizeof(int));
-    length += sizeof(int) / sizeof(char);
-
-    *((char *)(buffer + length)) = game->turn;
-    length++;
-
-    *((char *)(buffer + length)) = game->direction;
-    length++;
-
-    return length;
-}
 
 size_t serialize_game_state(Game *game, char *buffer)
 {

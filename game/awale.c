@@ -151,18 +151,58 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
         return NULL;
     }
         snprintf((char *)game->name, sizeof(game->name), "%s_%s_%s", player0_name, player1_name, datetime_str);
+
     //save in a file
     FILE * f;
-    f=fopen((char *)game->name,"a");
-    char *game_init = malloc(BUF_SIZE); 
+    char * filename_game = malloc(strlen(game->name)+7);
+    snprintf(filename_game,strlen(game->name)+8,"./data/%s",game->name);
+    char * game_init = malloc(sizeof(game->players[0].name) + sizeof(game->players[1].name) + sizeof(game->turn) + sizeof(game->direction)); 
     if (!game_init) {
         perror("Failed to allocate memory for game_init");
         free(game);
+        free(filename_game);
         return NULL;
     }
-    serialize_game_init_history(game,game_init); 
+    snprintf(game_init,sizeof(game->players[0].name) + sizeof(game->players[1].name) + sizeof(game->turn) + sizeof(game->direction),"%s\n%s\n%d\n%d\n",game->players[0].name,game->players[1].name,game->turn,game->direction);
+    f=fopen(filename_game,"a");
+    if(f==NULL){
+        perror("Error persisting the game");
+        free(game_init);
+        free(game);
+        return NULL;
+    }else{
+        fprintf(f,"%s",game_init);
+        free(game_init);
+    }
     fclose(f);
-
+    //add to the players'files
+    //player 1
+    FILE * p1;
+    char * filenameP1 = malloc(strlen(game->players[0].name)+7);
+    if(filenameP1 == NULL){
+        
+    }
+    snprintf(filenameP1,strlen(game->players[0].name)+8,"./data/%s",game->players[0].name);
+    p1=fopen(filenameP1,"a");
+    if(p1==NULL){
+        perror(filenameP1);
+    } else {
+        fprintf(p1,"%s\n",game->name);
+        fclose(p1);
+    }
+    free(filenameP1);
+    //player 2
+    FILE * p2;
+    char * filenameP2 = malloc(strlen(game->players[1].name)+7);
+    snprintf(filenameP2,strlen(game->players[1].name)+8,"./data/%s",game->players[1].name);
+    p2=fopen(filenameP2,"a");
+    if(p2==NULL){
+        perror(filenameP2);
+    } else {
+        fprintf(p2,"%s\n",game->name);
+        fclose(p2);
+    }
+    free(filenameP2);
     return game;
 }
 
@@ -170,7 +210,7 @@ Game *create_game(char *player0_name, char *player1_name, unsigned char directio
 int execute_round(Game *game, unsigned char player, unsigned char slot, char *error)
 {
     //returns 0 if goes correctly
-    //returns -1 if the move was not valid
+    //returns -1 if the move was not valid or there is an error
     //returns 1 if game over
     if (game->turn != player)
     {
@@ -195,12 +235,9 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
     if(player_is_broke(game, other_player))
     {
         if(!is_feeding_move(game, player, slot) && exists_move_to_feed(game, player))
-        {
-            snprintf(error, BUF_SIZE - 1, "%sError: the opponent is broke, you have to select a move that feeds them.%s", ERROR_COLOR, RESET);
+        {            snprintf(error, BUF_SIZE - 1, "%sError: the opponent is broke, you have to select a move that feeds them.%s", ERROR_COLOR, RESET);
             return -1;
-        }
-        else
-        {
+        } else {
             //increment score (all seeds go to the player)
             for (int i = 0; i < BOARD_SIZE; ++i)
             {
@@ -260,12 +297,23 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
     game->round++;
 
     //history save
-    // FILE * f;
-    // f=fopen((char *)game->name,"a");
-    // fprintf(f,"%u\n",slot); 
-    // fclose(f);
-
+    FILE * f;
+    char * filename_game = malloc(strlen(game->name)+7);
+    if(filename_game == NULL){
+        perror("Error allocataing memory for filename_game");
+        return -1;
+        
+    }
+    snprintf(filename_game,strlen(game->name)+8,"./data/%s",game->name);
+    f=fopen(filename_game,"a");
+    fprintf(f,"%u\n",slot); 
+    fclose(f);
+    free(filename_game);
     return 0;
+}
+
+void replay_game(Game *game){
+    printf("Here is your replay");
 }
 
 void print_game(Game *game)

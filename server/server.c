@@ -114,7 +114,23 @@ void app(void)
 
 
          Client c = { csock };
-         strncpy(c.name, buffer, NAME_SIZE);
+         const char *delimiter = strchr(buffer, '|');
+         if (delimiter) {
+         // Copy the name
+         size_t name_len = delimiter - buffer;
+         if (name_len >= sizeof(c.name)) {
+            name_len = sizeof(c.name) - 1; // Avoid overflow
+         }
+         strncpy(c.name, buffer, name_len);
+         c.name[name_len] = '\0'; // Explicit null-termination
+
+         // Copy the password
+         strncpy(c.password, delimiter + 1, sizeof(c.password) - 1);
+         c.password[sizeof(c.password) - 1] = '\0'; // Explicit null-termination
+
+         } else {
+            fprintf(stderr, "Invalid input: no '|' found.\n");
+         }
          c.game = NULL;
          
          char message[BUF_SIZE - 1];
@@ -125,22 +141,32 @@ void app(void)
          snprintf(filename,strlen(c.name)+8,"./data/%s",c.name);
          fd=fopen(filename,"r");
          if(fd==NULL){ 
-            printf("bad pseudo");
             snprintf(message, BUF_SIZE, "You don't have an account! Bye");
             send_message_to_client(&c, message);
             wait(2);
             end_connection(csock);
          } else {
-            FD_SET(csock, &rdfs);
-            clients[actual] = c;
-            actual++;
-            snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
-            send_message_to_client(&c, message);
+            char pswd[PASSWORD_SIZE]; 
+            if (fgets(pswd, BUF_SIZE, fd) != NULL) { 
+            // Remove the trailing newline character if present
+               pswd[strcspn(pswd, "\n")] = '\0';
+            }
+            if(strcmp(c.password,pswd)==0){
+               FD_SET(csock, &rdfs);
+               clients[actual] = c;
+               actual++;
+               snprintf(message, BUF_SIZE, "%sWelcome to Awalé %s%s%s!%s", BYELLOW, OWN_COLOR, c.name, BYELLOW, RESET);
+               send_message_to_client(&c, message);
+            } else {
+               snprintf(message, BUF_SIZE, "Wrong password! Bye");
+               send_message_to_client(&c, message);
+               wait(2);
+               end_connection(csock);
+            }
+
          }
          free(filename);
 
-         // Game *game = create_game(c.name, "Bob", 0);
-         // send_game_init_to_client(c, game, 0);
       } else {
          int i = 0;
          for(i = 0; i < actual; i++)
@@ -173,8 +199,8 @@ void app(void)
                   char message[BUF_SIZE - 1], *put = message;
                   put += snprintf(put, BUF_SIZE - 1 - (put - message), "Online players:                                                      ");
                   for(int i = 0; i < actual; ++i)
-                  {
-                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "- %s%-67s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name, RESET); 
+                  {  
+                     put += snprintf(put, BUF_SIZE - 1 - (put - message), "- %s%-67s%s", client->sock == clients[i].sock ? OWN_COLOR : OPPONENT_COLOR, clients[i].name,RESET); 
                   }
                   send_message_to_client(client, message);
                }

@@ -11,6 +11,7 @@
 
 #define BUF_SIZE    1024
 #define NAME_SIZE   128
+#define PASSWORD_SIZE 128
 
 typedef enum {
     MESSAGE,

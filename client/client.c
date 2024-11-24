@@ -39,7 +39,7 @@ static void end(void)
 #endif
 }
 
-static void app(const char *address, const char *name)
+static void app(const char *address, const char *name, const char * password)
 {
    SOCKET sock = init_connection(address);
    char buffer[BUF_SIZE];
@@ -64,7 +64,13 @@ static void app(const char *address, const char *name)
    }
 
    /* send our name */
-   write_server(sock, name);
+   char * name_and_password = malloc(strlen(name)+1+strlen(password)+1);
+   memcpy(name_and_password,name,strlen(name));
+   name_and_password[strlen(name)]='|';
+   memcpy(name_and_password+strlen(name)+1,password,strlen(password));
+   name_and_password[strlen(name)+1+strlen(password)]='\0';
+   printf("Here goes %s",name_and_password);
+   write_server(sock, name_and_password);
 
    /* set up signal handler for SIGWINCH */
    signal(SIGWINCH, handle_sigwinch);
@@ -261,15 +267,16 @@ static void write_server(SOCKET sock, const char *buffer)
 
 int main(int argc, char **argv)
 {
-   if (argc < 2)
+   printf("%d",argc);
+   if (argc < 4)
    {
-      printf("Usage : %s [address] [pseudo]\n", argv[0]);
+      printf("Usage : %s [address] [pseudo] [password]\n", argv[0]);
       return EXIT_FAILURE;
    }
 
    init();
 
-   app(argv[1], argv[2]);
+   app(argv[1],argv[2],argv[3]);
 
    end();
 

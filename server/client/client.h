@@ -7,6 +7,7 @@
 typedef struct {
    SOCKET sock;
    char name[NAME_SIZE];
+   char password[PASSWORD_SIZE];
    Game *game;
    Game *spectating;
 } Client;
