@@ -312,49 +312,6 @@ int execute_round(Game *game, unsigned char player, unsigned char slot, char *er
     return 0;
 }
 
-int execute_round_replay (Game *game, unsigned char slot)
-{
-    //returns 0 if goes correctly
-    //returns -1 if the move was not valid or there is an error
-    //returns 1 if game over
-    int player=game->turn;
-    unsigned char current_slot = distribute_seeds(game, slot);
-
-    //check if seeds are gained
-    if ((game->board[current_slot] == 2 || game->board[current_slot] == 3) && !slot_belongs_to_player(player, current_slot))
-    {
-        collect_seeds(game, player, current_slot);
-    }
-
-    //update history
-    for(int i=0;i<BOARD_SIZE;++i)
-    {
-        game->history[game->round * BOARD_SIZE + i] = game->board[i];
-    }
-    for(int i=0;i<BOARD_SIZE;++i)
-    {
-        if(game->history[game->round * BOARD_SIZE + i] != game->history[game->round * (BOARD_SIZE - 1) + i]){
-            game->nb_identical_rounds=0;
-            break;
-        }
-        else
-        {
-            game->nb_identical_rounds++;
-        }
-    }
-
-    //check if a player won with their score
-    if (game->players[player].score > 24)
-    {
-        printf("%s is the winner!", game->players[player].name);
-        game->winner = player;
-        return 1;
-    }
-    game->turn = (game->turn + 1) % 2;
-    game->round++;
-    return 0;
-}
-
 
 void print_game(Game *game)
 { 

@@ -113,19 +113,11 @@ void display_menu(Position position)
     printf("(");
     color_printf("n", BCYAN);
     printf(")");
-    printf("                 list your (n) past games\n");
-    move_cursor_right(first_column);
-    color_printf("replay ", BYELLOW);
-    color_printf("game", BCYAN);
-    printf("                  watch the replay of a game\n");
-
-    move_cursor_right(first_column);
-    color_printf("next", BYELLOW);
-    printf("                         display next move\n");
+    printf("                 list your past games\n");
 
     move_cursor_right(first_column);
     color_printf("home", BYELLOW);
-    printf("                         stop spectating / replaying a game\n");
+    printf("                         stop spectating a game\n");
 }
 
 void display_game(Position position, Game *game, unsigned char who_am_i)

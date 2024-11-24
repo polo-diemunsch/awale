@@ -11,7 +11,6 @@ void forfeit(Client *client, Client *clients, int actual, Game **games_playing, 
 void end_game(Client *player0, Client *player1, Client *clients, int actual, Game **games_playing, int *actual_games_playing);
 void remove_spectators(Game *game, Client *clients, int actual);
 void remove_game(Game **games, Game *game_to_remove, int *actual);
-int replay_game(FILE * fd, Client * client);
 
 int spectate(Client *client, Client *clients, int actual, Game **games_playing, int actual_games_playing, const char *target);
 
