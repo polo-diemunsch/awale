@@ -8,23 +8,23 @@ Vous pouvez les recompiler en utilisant la commande `make client server` dans un
 
 # Jeu
 
-                                                                      AWALÉ
+                                                     AWALÉ
 
-                                                                     GENERAL
-                                      online			   print the list of online players
-                                      send [player|all] message    send a message to a player / to everyone
-                                      challenge player             challenge a player to a duel / accept
-                                                                   the challenge from a player
-                                      decline_challenge player     decline a challenge from a player /
-                                                                   cancel a challenge sent to a player
-                                      historic (n)                 list your (n) past games
-                                      replay game                  watch the replay of a game
+                                                    GENERAL
+                    online			   print the list of online players
+                    send [player|all] message    send a message to a player / to everyone
+                    challenge player             challenge a player to a duel / accept
+                                                the challenge from a player
+                    decline_challenge player     decline a challenge from a player /
+                                                cancel a challenge sent to a player
+                    historic (n)                 list your (n) past games
+                    replay game                  watch the replay of a game
 
-                                                                     IN GAME
-                                      play slot                    choose which slot to play
+                                                    IN GAME
+                    play slot                    choose which slot to play
 
-                                                                      REPLAY
-                                      next                         display next move
+                                                    REPLAY
+                    next                         display next move
                                       
 ## GENERAL
 ### Online
@@ -38,22 +38,22 @@ Pour afficher la liste des dernières parties jouées, utilisez `historic`. Pour
 ## IN GAME
 Exemple de display de début de partie :
 
-                                                                      AWALÉ
+                                                     AWALÉ
 
 
-                                                      Turn 0 - Waiting for opponent to play
+                                    Turn 0 - Waiting for opponent to play
 
 
-                                                                   Y (Opponent)
+                                                Y (Opponent)
 
-                                                         ╭────┬────┬────┬────┬────┬────╮
-                                                     0   │  4 │  4 │  4 │  4 │  4 │  4 │  ◀─╮
-                                                         ├────┼────┼────┼────┼────┼────┤    │
-                                                     0   │  4 │  4 │  4 │  4 │  4 │  4 │   ─╯
-                                                         ╰────┴────┴────┴────┴────┴────╯
-                                                           a    b    c    d    e    f
+                                        ╭────┬────┬────┬────┬────┬────╮
+                                    0   │  4 │  4 │  4 │  4 │  4 │  4 │  ◀─╮
+                                        ├────┼────┼────┼────┼────┼────┤    │
+                                    0   │  4 │  4 │  4 │  4 │  4 │  4 │   ─╯
+                                        ╰────┴────┴────┴────┴────┴────╯
+                                        a    b    c    d    e    f
 
-                                                                     R (You)
+                                                    R (You)
 
 Les informations que vous voyez sont : 
 - à quel round la partie en est
