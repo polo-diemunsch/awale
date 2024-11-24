@@ -123,10 +123,10 @@ void send_message_from_client_to_client(Client *receiver, Client *sender, const 
 {
    char message[BUF_SIZE - 1];
 
-   snprintf(message, BUF_SIZE - 1, "%sfrom %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, sender->name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE - 1, "from %s%s%s: %s", OPPONENT_COLOR, sender->name, RESET, buffer);
    send_message_to_client(receiver, message);
 
-   snprintf(message, BUF_SIZE - 1, "%sto %s%s%s: %s%s", BWHITE, OPPONENT_COLOR, receiver->name, BWHITE, buffer, RESET);
+   snprintf(message, BUF_SIZE - 1, "to %s%s%s: %s", OPPONENT_COLOR, receiver->name, RESET, buffer);
    send_message_to_client(sender, message);
 }
 

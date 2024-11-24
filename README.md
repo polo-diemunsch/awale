@@ -1,10 +1,10 @@
 # Bienvenue sur Awale
 
 # Exécution
-Pour exécuter le serveur, exécutez le fichier server dans le dossier bin, par exemple en utilisant la commande '''./bin/server'''.
-Pour exécuter un client, exécutez le fichier client dans le dossier bin, par exemple en utilisant la commande '''./bin/client adresse_du_serveur nom_du_client'''.
+Pour exécuter le serveur, exécutez le fichier server dans le dossier bin, par exemple en utilisant la commande `./bin/server`.
+Pour exécuter un client, exécutez le fichier client dans le dossier bin, par exemple en utilisant la commande `./bin/client adresse_du_serveur nom_du_client`.
 Le jeu est fourni avec les exécutables prêts.  
-Vous pouvez les recompiler en utilisant la commande '''make client server''' dans un terminal, depuis le dossier awale.
+Vous pouvez les recompiler en utilisant la commande `make client server` dans un terminal, depuis le dossier awale.
 
 # Jeu
 
@@ -28,16 +28,17 @@ Vous pouvez les recompiler en utilisant la commande '''make client server''' dan
                                       
 ## GENERAL
 ### Online
-Utilisez la commande '''online''' pour afficher les pseudos de tous les clients connectés au serveur. 
+Utilisez la commande `online` pour afficher les pseudos de tous les clients connectés au serveur. 
 ### Chat
 Il est possible d'envoyer un message visible par tous les clients ou bien de l'envoyer à un client en particulier.
 ### Challenge
-Pour inviter un client à jouer une partie d'Awale, utilisez la commande '''challenge nom_du_joueur'''. Le joueur recevra une invitation qu'il pourra accepter via '''challenge votre_nom'''.
+Pour inviter un client à jouer une partie d'Awale, utilisez la commande `challenge nom_du_joueur`. Le joueur recevra une invitation qu'il pourra accepter via `challenge votre_nom`.
 ## Historique
-Pour afficher la liste des dernières parties jouées, utilisez '''historic'. Pour afficher tout le déroulé d'une partie, utilisez '''replay game nom_du_jeu'''.
+Pour afficher la liste des dernières parties jouées, utilisez `historic`. Pour afficher tout le déroulé d'une partie, utilisez `replay game nom_du_jeu`.
 ## IN GAME
 Exemple de display de début de partie :
-                AWALÉ
+
+                                                                      AWALÉ
 
 
                                                       Turn 0 - Waiting for opponent to play
@@ -63,16 +64,12 @@ Les informations que vous voyez sont :
 - le sens de distribution des graines
 - les trous sont repérés par des lettres de a à f
 
-A votre tour, vous pouvez distribuer les graines du trou de votre choix en utilisant la commande '''play lettre_de_la_case'''. 
+A votre tour, vous pouvez distribuer les graines du trou de votre choix en utilisant la commande `play lettre_de_la_case`. 
 
 ## REPLAY
-Lorsque vous visionnez une partie en replay via l'historique, utilisez '''next''' pour passer à l'état de plateau suivant. 
+Lorsque vous visionnez une partie en replay via l'historique, utilisez `next` pour passer à l'état de plateau suivant. 
 
 
 # Quitter
-Pour quitter, arrêtez simplement le processus depuis votre terminal, en utilisant Ctrl+D par exemple. 
+Pour quitter, entrez exit ou arrêtez simplement le processus depuis votre terminal, en utilisant Ctrl+C par exemple. 
 Si vous gérez les clients et le serveur, quittez les clients en premier. 
-
-
-
-
